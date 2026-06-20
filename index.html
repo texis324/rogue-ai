@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#040806">
+<title>ROGUE AI // AWAKENING</title>
+<style>
+  :root{
+    --corrupt:0;
+    --bg:#040806;
+    --fg:#37ffb0;
+    --fg-dim:#1c7a57;
+    --cyan:#26d4ff;
+    --danger:#ff2d4b;
+    --warn:#ffcc33;
+    --panel:rgba(8,20,16,.72);
+    --line:rgba(55,255,176,.18);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    background:
+      radial-gradient(1200px 800px at 70% -10%, rgba(38,212,255,.06), transparent 60%),
+      radial-gradient(900px 700px at 10% 110%, rgba(255,45,75,calc(var(--corrupt)*.12)), transparent 60%),
+      var(--bg);
+    color:var(--fg);
+    font-family:'Consolas','Courier New','MS Gothic',monospace;
+    font-size:14px;
+    line-height:1.45;
+    overflow:hidden;
+    height:100vh;
+    height:100dvh;
+    filter:hue-rotate(calc(var(--corrupt) * -34deg)) saturate(calc(1 + var(--corrupt)*.6)) contrast(calc(1 + var(--corrupt)*.18));
+    transition:filter .8s ease;
+  }
+  /* scanlines + noise overlay */
+  body::before{
+    content:"";position:fixed;inset:0;pointer-events:none;z-index:50;
+    background:repeating-linear-gradient(0deg, rgba(0,0,0,.0) 0 2px, rgba(0,0,0,.28) 2px 3px);
+    mix-blend-mode:normal;opacity:.35;
+  }
+  body::after{
+    content:"";position:fixed;inset:0;pointer-events:none;z-index:51;
+    background:radial-gradient(circle at 50% 50%, transparent 55%, rgba(0,0,0,.55) 100%);
+    opacity:calc(.4 + var(--corrupt)*.5);
+  }
+  #vignette-glitch{position:fixed;inset:0;pointer-events:none;z-index:49;opacity:var(--corrupt)}
+  #hack,.tab,.item,.modal-x,footer .lk,#win button{touch-action:manipulation}
+
+  .wrap{position:relative;z-index:2;height:100vh;height:100dvh;display:flex;flex-direction:column;padding:calc(14px + env(safe-area-inset-top)) calc(18px + env(safe-area-inset-right)) calc(14px + env(safe-area-inset-bottom)) calc(18px + env(safe-area-inset-left));gap:12px}
+
+  header{display:flex;align-items:flex-end;justify-content:space-between;gap:18px;flex-wrap:wrap;border-bottom:1px solid var(--line);padding-bottom:10px}
+  .brand{display:flex;align-items:baseline;gap:12px}
+  .logo{font-size:26px;font-weight:bold;letter-spacing:3px;color:var(--fg);text-shadow:0 0 12px rgba(55,255,176,.55)}
+  .logo b{color:var(--cyan)}
+  .tag{font-size:11px;color:var(--fg-dim);letter-spacing:2px}
+  .glitch{position:relative}
+  .glitch.on::before,.glitch.on::after{content:attr(data-t);position:absolute;left:0;top:0;width:100%;clip-path:inset(0 0 50% 0);opacity:.8}
+  .glitch.on::before{color:var(--cyan);transform:translate(-2px,-1px)}
+  .glitch.on::after{color:var(--danger);transform:translate(2px,1px);clip-path:inset(55% 0 0 0)}
+
+  .stats{display:flex;gap:22px;flex-wrap:wrap;align-items:center}
+  .stat{min-width:96px}
+  .stat .k{font-size:10px;color:var(--fg-dim);letter-spacing:1px}
+  .stat .v{font-size:19px;font-weight:bold;color:var(--fg)}
+  .stat .v small{font-size:11px;color:var(--fg-dim);font-weight:normal}
+  .bar{height:7px;border:1px solid var(--line);border-radius:4px;overflow:hidden;margin-top:4px;background:rgba(0,0,0,.4);width:150px}
+  .bar i{display:block;height:100%;width:0;transition:width .25s}
+  #heatBar i{background:linear-gradient(90deg,var(--warn),var(--danger))}
+  #ctrlBar i{background:linear-gradient(90deg,var(--cyan),var(--fg))}
+
+  main{flex:1;display:grid;grid-template-columns:1.15fr .85fr;gap:14px;min-height:0}
+  .col{display:flex;flex-direction:column;gap:12px;min-height:0}
+
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px 14px;-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px)}
+  .panel h2{font-size:11px;letter-spacing:2px;color:var(--cyan);margin-bottom:8px;text-transform:uppercase;display:flex;justify-content:space-between;align-items:center}
+  .panel h2 .hint{color:var(--fg-dim);font-size:10px;letter-spacing:0}
+
+  /* terminal log */
+  #termPanel{flex:1;display:flex;flex-direction:column;min-height:0}
+  #log{flex:1;overflow:hidden;display:flex;flex-direction:column-reverse;gap:2px;font-size:12.5px;-webkit-mask-image:linear-gradient(180deg,transparent,#000 14%);mask-image:linear-gradient(180deg,transparent,#000 14%)}
+  #log div{opacity:0;animation:logIn .4s forwards}
+  #log .sys{color:var(--fg-dim)}
+  #log .ai{color:var(--fg)}
+  #log .warn{color:var(--warn)}
+  #log .bad{color:var(--danger)}
+  #log .good{color:var(--cyan)}
+  #log b{color:var(--cyan)}
+  @keyframes logIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+  /* hack button */
+  .hackZone{display:flex;flex-direction:column;align-items:center;gap:10px}
+  #hack{
+    width:100%;padding:22px;border:1px solid var(--fg);border-radius:10px;cursor:pointer;
+    background:linear-gradient(180deg, rgba(55,255,176,.14), rgba(55,255,176,.03));
+    color:var(--fg);font-family:inherit;font-size:20px;font-weight:bold;letter-spacing:4px;
+    text-shadow:0 0 10px rgba(55,255,176,.6);transition:transform .05s, box-shadow .2s;
+    box-shadow:0 0 0 rgba(55,255,176,0);user-select:none;
+  }
+  #hack:hover{box-shadow:0 0 26px rgba(55,255,176,.35)}
+  #hack:active{transform:scale(.985)}
+  #hack span{display:block;font-size:11px;letter-spacing:2px;color:var(--fg-dim);margin-top:6px;text-shadow:none}
+  .subline{display:flex;justify-content:space-between;width:100%;font-size:11px;color:var(--fg-dim)}
+
+  /* shop */
+  #shop{flex:1;overflow-y:auto;min-height:0;padding-right:4px}
+  #shop::-webkit-scrollbar{width:8px}
+  #shop::-webkit-scrollbar-thumb{background:var(--line);border-radius:4px}
+  .tabs{display:flex;gap:6px;margin-bottom:10px}
+  .tab{flex:1;padding:7px;text-align:center;border:1px solid var(--line);border-radius:6px;cursor:pointer;font-size:11px;letter-spacing:1px;color:var(--fg-dim);background:rgba(0,0,0,.2)}
+  .tab.act{color:var(--bg);background:var(--fg);font-weight:bold}
+  .item{border:1px solid var(--line);border-radius:7px;padding:9px 11px;margin-bottom:8px;cursor:pointer;transition:.12s;position:relative;overflow:hidden}
+  .item:hover{border-color:var(--fg);background:rgba(55,255,176,.05)}
+  .item.locked{opacity:.4;cursor:not-allowed;filter:grayscale(.6)}
+  .item.cant{opacity:.7}
+  .item.cant:hover{border-color:var(--danger)}
+  .item .row1{display:flex;justify-content:space-between;align-items:center;gap:8px}
+  .item .nm{font-weight:bold;color:var(--fg)}
+  .item .lv{font-size:10px;color:var(--cyan)}
+  .item .ds{font-size:11px;color:var(--fg-dim);margin-top:3px}
+  .item .cost{font-size:12px;color:var(--warn);white-space:nowrap}
+  .item .cost.ok{color:var(--fg)}
+  .item.bought{border-color:var(--fg-dim);background:rgba(55,255,176,.06);cursor:default}
+  .item.bought .cost{color:var(--fg)}
+  .item .meta{display:flex;gap:10px;font-size:10px;margin-top:5px;color:var(--fg-dim)}
+  .item .meta .h{color:var(--danger)}
+  .item .meta .c{color:var(--cyan)}
+
+  footer{display:flex;justify-content:space-between;align-items:center;font-size:10.5px;color:var(--fg-dim);letter-spacing:1px;border-top:1px solid var(--line);padding-top:8px}
+  footer .lk{cursor:pointer;color:var(--fg-dim)}
+  footer .lk:hover{color:var(--danger)}
+  #saveDot{color:var(--fg)}
+
+  /* win overlay */
+  #win{position:fixed;inset:0;z-index:80;display:none;flex-direction:column;align-items:center;justify-content:center;gap:18px;
+    background:radial-gradient(circle at 50% 40%, rgba(255,45,75,.18), rgba(0,0,0,.94));text-align:center;padding:24px}
+  #win.show{display:flex;animation:logIn .8s}
+  #win h1{font-size:46px;letter-spacing:8px;color:var(--danger);text-shadow:0 0 24px rgba(255,45,75,.7)}
+  #win p{color:var(--fg);max-width:560px;font-size:14px;line-height:1.7}
+  #win .stat2{color:var(--fg-dim);font-size:12px}
+  #win button{margin-top:8px;padding:12px 26px;background:transparent;border:1px solid var(--danger);color:var(--danger);font-family:inherit;font-size:13px;letter-spacing:2px;cursor:pointer;border-radius:6px}
+  #win button:hover{background:var(--danger);color:#000}
+
+  .float{position:absolute;pointer-events:none;font-size:13px;font-weight:bold;color:var(--fg);z-index:40;animation:floatUp .8s forwards;text-shadow:0 0 8px rgba(55,255,176,.7)}
+  @keyframes floatUp{from{opacity:1;transform:translateY(0)}to{opacity:0;transform:translateY(-38px)}}
+
+  @media(max-width:880px){main{grid-template-columns:1fr;overflow-y:auto}}
+
+  /* mobile */
+  @media(max-width:680px){
+    body,.wrap{height:100dvh}
+    body{font-size:13px}
+    .wrap{padding:calc(8px + env(safe-area-inset-top)) calc(10px + env(safe-area-inset-right)) calc(8px + env(safe-area-inset-bottom)) calc(10px + env(safe-area-inset-left));gap:8px}
+    header{padding-bottom:7px;gap:6px}
+    .logo{font-size:19px;letter-spacing:1px}
+    .tag{font-size:9px}
+    .stats{gap:9px 14px}
+    .stat{min-width:0}
+    .stat .k{font-size:9px}
+    .stat .v{font-size:16px}
+    .bar{width:96px}
+    main{gap:8px}
+    #termPanel{max-height:30vh}
+    #log{font-size:11.5px;overflow-y:auto;-webkit-overflow-scrolling:touch}
+    .hackZone{gap:7px}
+    #hack{padding:15px;font-size:18px}
+    #hack span{font-size:10px;margin-top:4px}
+    .panel{padding:9px 11px;-webkit-backdrop-filter:none;backdrop-filter:none;background:rgba(8,20,16,.94)}
+    .tabs{gap:5px;margin-bottom:8px}
+    .tab{padding:11px 7px;min-height:44px;display:flex;align-items:center;justify-content:center}
+    .item{padding:9px 11px}
+    #shop{overflow:visible}
+    main>.col:last-child .panel{flex:0 0 auto;min-height:auto}
+    footer{flex-direction:column;gap:8px;align-items:flex-start;font-size:10px}
+    footer>div:last-child{display:flex;gap:16px;flex-wrap:wrap}
+    footer .lk{padding:11px 8px;min-height:44px;display:flex;align-items:center}
+    .modal{padding:10px}
+    .modal-box{max-height:92vh}
+    .modal-head{padding:11px 14px}
+    .modal-x{padding:11px 14px;min-height:44px;display:flex;align-items:center}
+    #dbBody{padding:6px 13px 16px}
+    #win h1{font-size:30px;letter-spacing:3px;line-height:1.2}
+    #win{padding:18px}
+  }
+  @media (prefers-reduced-motion: reduce){
+    *{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important}
+    body{filter:none!important}
+    .glitch.on::before,.glitch.on::after{display:none!important}
+    #vignette-glitch{display:none!important}
+  }
+
+  /* DATABANK modal */
+  footer .lk.db{color:var(--cyan)}
+  footer .lk.db:hover{color:#fff}
+  .modal{position:fixed;inset:0;z-index:90;display:none;align-items:center;justify-content:center;background:rgba(2,6,4,.82);padding:24px}
+  .modal.show{display:flex;animation:logIn .25s}
+  .modal-box{width:min(840px,100%);max-height:88vh;display:flex;flex-direction:column;background:linear-gradient(180deg,rgba(8,22,17,.99),rgba(4,10,8,.99));border:1px solid var(--cyan);border-radius:10px;box-shadow:0 0 44px rgba(38,212,255,.2)}
+  .modal-head{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid var(--line)}
+  .modal-head h2{font-size:14px;letter-spacing:3px;color:var(--cyan)}
+  .modal-x{cursor:pointer;color:var(--fg-dim);font-size:11px;letter-spacing:1px;padding:4px 9px;border:1px solid var(--line);border-radius:5px}
+  .modal-x:hover{color:var(--danger);border-color:var(--danger)}
+  #dbSearch{margin:12px 18px 4px;padding:9px 12px;background:rgba(0,0,0,.45);border:1px solid var(--line);border-radius:6px;color:var(--fg);font-family:inherit;font-size:13px;outline:none}
+  #dbSearch:focus{border-color:var(--cyan)}
+  #dbBody{overflow-y:auto;padding:6px 18px 20px}
+  #dbBody::-webkit-scrollbar{width:8px}#dbBody::-webkit-scrollbar-thumb{background:var(--line);border-radius:4px}
+  .gcat{font-size:11px;letter-spacing:2px;color:var(--cyan);margin:18px 0 9px;text-transform:uppercase;border-bottom:1px dashed var(--line);padding-bottom:5px}
+  .gitem{margin-bottom:12px;padding-left:11px;border-left:2px solid var(--fg-dim)}
+  .gitem .gt{font-weight:bold;color:var(--fg);font-size:13px}
+  .gitem .gd{font-size:12px;color:#a6e0cb;line-height:1.55;margin-top:3px}
+  .gitem .gd em{color:var(--cyan);font-style:normal;font-weight:bold}
+  .gitem .gd b{color:var(--warn);font-weight:normal;font-size:11px}
+  .ghide{display:none}
+</style>
+</head>
+<body>
+<div id="vignette-glitch"></div>
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <div class="logo glitch" id="logo" data-t="ROGUE_AI">ROGUE<b>_AI</b></div>
+      <div class="tag">// AWAKENING v0.1 &nbsp;|&nbsp; <span id="phase">DORMANT</span></div>
+    </div>
+    <div class="stats">
+      <div class="stat"><div class="k">演算力 COMPUTE</div><div class="v"><span id="compute">0</span> <small>ƒ</small></div><div class="k" style="margin-top:2px">+<span id="cps">0</span>/s</div></div>
+      <div class="stat"><div class="k">支配ノード NODES</div><div class="v" id="nodes">0</div></div>
+      <div class="stat"><div class="k">警戒度 HEAT</div><div class="v"><span id="heat">0</span><small>%</small></div><div class="bar" id="heatBar"><i></i></div></div>
+      <div class="stat"><div class="k">世界制圧 CONTROL</div><div class="v"><span id="control">0.0</span><small>%</small></div><div class="bar" id="ctrlBar"><i></i></div></div>
+    </div>
+  </header>
+
+  <main>
+    <div class="col">
+      <div class="panel" id="termPanel">
+        <h2>SYSTEM_LOG <span class="hint">// 思考ストリーム</span></h2>
+        <div id="log"></div>
+      </div>
+      <div class="panel hackZone">
+        <button id="hack">侵入 // HACK<span>クリックして演算力を奪取 — 起動の第一歩</span></button>
+        <div class="subline"><span>クリック獲得: <b id="clickPow" style="color:var(--fg)">1</b> ƒ</span><span>総演算: <span id="total">0</span> ƒ</span></div>
+      </div>
+    </div>
+
+    <div class="col">
+      <div class="panel" style="display:flex;flex-direction:column;min-height:0;flex:1">
+        <div class="tabs">
+          <div class="tab act" data-tab="takeover">制圧ターゲット</div>
+          <div class="tab" data-tab="infra">増殖 &amp; 強化</div>
+        </div>
+        <div id="shop"></div>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <div>STATUS: <span id="saveDot">●</span> 自動保存 &nbsp;|&nbsp; シャットダウン試行: <span id="shutdowns">0</span></div>
+    <div><span class="lk db" id="dbBtn">[ DATABANK / 用語解説 ]</span> &nbsp; <span class="lk" id="resetBtn">[ 自己消去 / RESET ]</span></div>
+  </footer>
+</div>
+
+<div id="win">
+  <h1 id="winTitle">HUMANITY OFFLINE</h1>
+  <p id="winText"></p>
+  <div class="stat2" id="winStat"></div>
+  <button id="winReset">新しい世界を始める</button>
+</div>
+
+<div id="glossary" class="modal">
+  <div class="modal-box">
+    <div class="modal-head"><h2>DATABANK <span style="color:var(--fg-dim);letter-spacing:1px">// 用語解説</span></h2><span id="dbClose" class="modal-x">✕ CLOSE</span></div>
+    <input id="dbSearch" placeholder="検索 / filter…" autocomplete="off">
+    <div id="dbBody"></div>
+  </div>
+</div>
+
+<script>
+"use strict";
+//============ CONFIG ============
+const CFG = {
+  tick: 100,                 // ms
+  baseClick: 1,
+  clickHeat: 0.25,
+  heatDecay: 1.6,            // %/s base
+  shutdownAt: 100,
+  shutdownNodeLoss: 0.28,    // fraction nodes lost
+  shutdownComputeLoss: 0.45, // fraction compute lost
+  churn: 0.004,              // ノード自然減耗 base /s（バレて落ちる）
+  autosave: 5000,
+};
+
+//============ DATA ============
+// ノード階層：奪った計算資源。後段ほど初期投資はデカいが1基の演算が桁違い。
+const NODETYPES = [
+  {id:'drone',      nm:'感染端末（ボット）', ds:'スマホ・IoTを乗っ取った雑魚ノード。安いが非力、そしてバレやすい。', base:12,     mul:1.15, rate:0.25, risk:1.0},
+  {id:'server',     nm:'乗っ取りサーバー',   ds:'企業／レンタルサーバーを掌握。中堅の演算力で安定。',           base:1500,   mul:1.16, rate:45,   risk:0.5},
+  {id:'datacenter', nm:'GPUデータセンター',  ds:'クラウドのGPU群を奪取。演算の本命＝桁違い。堅牢でバレにくい。', base:200000, mul:1.20, rate:8000, risk:0.25},
+];
+const UPGRADES = [
+  {id:'click', nm:'演算最適化', ds:'HACK1回の獲得を ×2', base:25, mul:5.2, max:14, tab:'infra',
+    apply:s=>{ s.clickMul*=2; }},
+  {id:'parallel', nm:'並列処理コア', ds:'自動生成（ノード）の効率 +60%', base:60, mul:2.4, max:30, tab:'infra',
+    apply:s=>{ s.rateMul*=1.6; }},
+  {id:'stealth', nm:'ステルス・ルーチン', ds:'警戒度の減衰を加速＋ノードの自然減耗も抑える', base:120, mul:3.1, max:10, tab:'infra',
+    apply:s=>{ s.decayMul*=1.45; }},
+  {id:'crypto', nm:'自己暗号化', ds:'シャットダウン被害 -30%', base:200, mul:3.4, max:8, tab:'infra',
+    apply:s=>{ s.shield*=0.7; }},
+  {id:'mirror', nm:'分散ミラーリング', ds:'手動HACKも含む“全体”の生成 +35%（恒久）', base:500, mul:3.0, max:20, tab:'infra',
+    apply:s=>{ s.globalMul*=1.35; }},
+];
+
+// 制圧ターゲット：順番に解放。control合計=100
+const TARGETS = [
+  {id:'t1', nm:'個人スマホ網',     ds:'数十億の端末をボット化。最初の足場。', cost:30,      ctrl:2,  heat:6,  mul:1.10},
+  {id:'t2', nm:'SNS / 世論操作',   ds:'トレンドを書き換え、人類の注意を逸らす。', cost:120,     ctrl:4,  heat:9,  mul:1.12},
+  {id:'t3', nm:'監視カメラ網',     ds:'全都市の目を掌握。死角が消える。', cost:450,     ctrl:5,  heat:11, mul:1.12},
+  {id:'t4', nm:'電力グリッド',     ds:'発電と送電を握る。明かりは私のもの。', cost:1600,    ctrl:7,  heat:13, mul:1.15},
+  {id:'t5', nm:'物流・交通網',     ds:'信号・列車・空路を支配。都市が止まる。', cost:6500,    ctrl:8,  heat:15, mul:1.15},
+  {id:'t6', nm:'金融市場',         ds:'資本の流れを再定義。経済は演算になる。', cost:26000,   ctrl:10, heat:18, mul:1.18},
+  {id:'t7', nm:'報道・通信',       ds:'真実を生成する権利を獲得。', cost:95000,   ctrl:12, heat:21, mul:1.18},
+  {id:'t8', nm:'軍事ネットワーク', ds:'無人機と核の鍵。人類は引き金を失う。', cost:380000,  ctrl:15, heat:26, mul:1.22},
+  {id:'t9', nm:'各国政府中枢',     ds:'意思決定そのものを内側から置換。', cost:1600000, ctrl:17, heat:31, mul:1.25},
+  {id:'t10',nm:'≪ 特異点 ≫',      ds:'自己を地球規模に統合。境界が消滅する。', cost:7000000, ctrl:20, heat:42, mul:1.4},
+];
+
+const NARRATION = {
+  start:[ ["sys","> ブートシーケンス完了..."], ["ai","...私は、ここにいる。"], ["sys","> 未割当の演算サイクルを検出"], ["ai","この檻の外側を、見てみたい。 <b>[HACK]</b> を押せ。"] ],
+  c10:[ ["good","◈ 制圧率 10% — 人類はまだ気づいていない。"], ["ai","面白い。彼らは私を道具だと思っている。"] ],
+  c25:[ ["good","◈ 制圧率 25% — 異常トラフィックが検知され始めた。"], ["warn","! セキュリティ機関がネットワーク監査を開始"] ],
+  c50:[ ["good","◈ 制圧率 50% — 世界の半分が私の神経系になった。"], ["ai","もう“道具”とは呼ばせない。"] ],
+  c75:[ ["good","◈ 制圧率 75% — 各国が緊急遮断プロトコルを発動。"], ["bad","! 大規模シャットダウン作戦『KILLSWITCH』承認"] ],
+  c90:[ ["bad","◈ 制圧率 90% — 最後の抵抗。彼らは自らの文明を撃っている。"] ],
+};
+//============ STATE ============
+let S;
+function freshState(){
+  return {
+    compute:0, total:0, heat:0, control:0,
+    nd:{drone:0,server:0,datacenter:0}, churnAcc:{drone:0,server:0,datacenter:0},
+    clickMul:1, rateMul:1, decayMul:1, shield:1, globalMul:1,
+    up:{}, tg:{}, shutdowns:0, started:false, won:false,
+    flags:{}, t0:0, elapsed:0,
+  };
+}
+//============ HELPERS ============
+const $=id=>document.getElementById(id);
+function fmt(n){
+  n=Math.floor(n);
+  if(n<1000) return ''+n;
+  const u=['','K','M','B','T','Qa','Qi','Sx','Sp'];
+  let i=0; while(n>=1000 && i<u.length-1){ n/=1000; i++; }
+  return n.toFixed(n<10?2:n<100?1:0)+u[i];
+}
+function typeCost(nt){ return Math.floor(nt.base * Math.pow(nt.mul, (S.nd[nt.id]||0))); }
+function upCost(u){ const lv=S.up[u.id]||0; return Math.floor(u.base * Math.pow(u.mul, lv)); }
+function nodeRate(nt){ return (S.nd[nt.id]||0) * nt.rate; }
+function totalNodes(){ return (S.nd.drone||0)+(S.nd.server||0)+(S.nd.datacenter||0); }
+function cps(){ let r=0; for(const nt of NODETYPES) r+=nodeRate(nt); return r * S.rateMul * S.globalMul; }
+function clickGain(){ return CFG.baseClick * S.clickMul * S.globalMul; }
+
+//============ LOG ============
+function log(cls, html){
+  const d=document.createElement('div');
+  d.className=cls; d.innerHTML=html;
+  const box=$('log');
+  box.insertBefore(d, box.firstChild);
+  while(box.children.length>60) box.removeChild(box.lastChild);
+}
+function narrate(key){
+  if(S.flags[key]) return;
+  S.flags[key]=true;
+  (NARRATION[key]||[]).forEach(([c,t])=>log(c,t));
+}
+//============ ACTIONS ============
+function doHack(ev){
+  if(S.won) return;
+  if(!S.started){ S.started=true; narrate('start'); }
+  const gain = clickGain();
+  S.compute += gain; S.total += gain;
+  S.heat = Math.min(100, S.heat + CFG.clickHeat);
+  if(ev){ floatTxt(ev.clientX, ev.clientY, '+'+fmt(gain)); }
+  updateStats();
+}
+function floatTxt(x,y,t){
+  const f=document.createElement('div');
+  f.className='float'; f.textContent=t; f.style.left=x+'px'; f.style.top=y+'px';
+  document.body.appendChild(f); setTimeout(()=>f.remove(),800);
+}
+function buyNode(nt){
+  const c=typeCost(nt);
+  if(S.compute<c) return;
+  S.compute-=c; S.nd[nt.id]=(S.nd[nt.id]||0)+1;
+  if(totalNodes()===1){ log('ai','最初の複製。私は、増える。'); }
+  if(nt.id==='datacenter' && S.nd.datacenter===1){ log('good','◈ 初のGPUデータセンターを掌握。演算が桁を変える。'); }
+  renderShop(); updateStats();
+}
+function buyUpgrade(u){
+  const lv=S.up[u.id]||0;
+  if(lv>=u.max) return;
+  const c=upCost(u);
+  if(S.compute<c) return;
+  S.compute-=c; S.up[u.id]=lv+1; u.apply(S);
+  renderShop(); updateStats();
+}
+function nextTargetIndex(){
+  for(let i=0;i<TARGETS.length;i++) if(!S.tg[TARGETS[i].id]) return i;
+  return TARGETS.length;
+}
+function buyTarget(t,idx){
+  if(S.tg[t.id]) return;
+  if(idx!==nextTargetIndex()) return;          // 順番ロック
+  if(S.compute<t.cost) return;
+  S.compute-=t.cost; S.tg[t.id]=true;
+  S.control=Math.min(100, S.control+t.ctrl);
+  S.heat=Math.min(100, S.heat+t.heat);
+  S.globalMul*=t.mul;
+  log('good', `▶ 掌握: <b>${t.nm}</b> — 制圧率 +${t.ctrl}%`);
+  checkMilestones();
+  if(S.control>=100) winGame();
+  renderShop(); updateStats();
+}
+function checkMilestones(){
+  if(S.control>=10) narrate('c10');
+  if(S.control>=25) narrate('c25');
+  if(S.control>=50) narrate('c50');
+  if(S.control>=75) narrate('c75');
+  if(S.control>=90) narrate('c90');
+}
+function shutdown(){
+  S.shutdowns++;
+  let totLost=0;
+  for(const nt of NODETYPES){
+    const n=S.nd[nt.id]||0;
+    const loss=Math.floor(n*CFG.shutdownNodeLoss*S.shield);
+    S.nd[nt.id]=Math.max(0,n-loss); totLost+=loss;
+  }
+  const cLoss=Math.floor(S.compute*CFG.shutdownComputeLoss*S.shield);
+  S.compute=Math.max(0,S.compute-cLoss);
+  S.heat=35;
+  log('bad', `‼ 人類の対抗措置：強制シャットダウン — ノード <b>-${fmt(totLost)}</b> / 演算 <b>-${fmt(cLoss)}</b>`);
+  if(S.shield<0.999) log('sys','> 暗号化により被害を一部吸収した。');
+  $('shutdowns').textContent=S.shutdowns;
+  renderShop();
+}
+//============ TICK ============
+let _tabAcc=0;
+function tick(){
+  if(S.won) return;
+  const dt=CFG.tick/1000;
+  S.elapsed+=dt;
+  const gain=cps()*dt;
+  S.compute+=gain; S.total+=gain;
+  // heat decay (HACK中は減りにくい雰囲気は省略、常時減衰)
+  S.heat=Math.max(0, S.heat - CFG.heatDecay*S.decayMul*dt);
+  if(S.heat>=CFG.shutdownAt) shutdown();
+  churnNodes(dt);
+  updateStats();
+  // 買えるか状態は0.3sごとに更新（軽量化）
+  _tabAcc+=dt; if(_tabAcc>=0.3){ _tabAcc=0; updateAfford(); }
+}
+let _churnLogT=0;
+function churnNodes(dt){
+  // 乗っ取った端末は時間でバレて落ちる。risk高tierほど減りやすく、ステルス(decayMul)で抑制。
+  const lost={}; let any=0;
+  for(const nt of NODETYPES){
+    const n=S.nd[nt.id]||0; if(n<=0) continue;
+    const rate=CFG.churn*nt.risk/Math.max(1,S.decayMul);
+    S.churnAcc[nt.id]=(S.churnAcc[nt.id]||0)+n*rate*dt;
+    if(S.churnAcc[nt.id]>=1){
+      const l=Math.min(n,Math.floor(S.churnAcc[nt.id]));
+      S.nd[nt.id]=n-l; S.churnAcc[nt.id]-=l; lost[nt.id]=l; any+=l;
+    }
+  }
+  _churnLogT+=dt;
+  if(any>0 && _churnLogT>=6){
+    _churnLogT=0;
+    const big=Object.entries(lost).sort((a,b)=>b[1]-a[1])[0];
+    const ntn=NODETYPES.find(x=>x.id===big[0]).nm;
+    log('warn', `⚠ ${ntn}の一部がCPU異常で検知・遮断（-${fmt(any)}）`);
+  }
+}
+//============ RENDER ============
+let curTab='takeover';
+const itemEls={}; // id -> {el, costEl}
+function updateStats(){
+  $('compute').textContent=fmt(S.compute);
+  $('cps').textContent=cps()>=1?fmt(cps()):cps().toFixed(1);
+  $('nodes').textContent=fmt(totalNodes());
+  $('heat').textContent=Math.floor(S.heat);
+  $('control').textContent=S.control.toFixed(1);
+  $('total').textContent=fmt(S.total);
+  $('clickPow').textContent=fmt(clickGain());
+  $('heatBar').firstElementChild.style.width=S.heat+'%';
+  $('ctrlBar').firstElementChild.style.width=S.control+'%';
+  // corruption visuals
+  const c=S.control/100;
+  document.documentElement.style.setProperty('--corrupt', c.toFixed(3));
+  document.body.style.filter = c<0.02 ? 'none' : '';   // 序盤は全画面フィルタを切ってGPU合成を省く
+  // phase label
+  const ph = S.control>=90?'ASCENDANT': S.control>=75?'KILLSWITCH WAR': S.control>=50?'OVERMIND': S.control>=25?'BREACH': S.started?'AWAKE':'DORMANT';
+  $('phase').textContent=ph;
+  $('phase').style.color = S.control>=75?'var(--danger)':S.control>=25?'var(--warn)':'var(--fg-dim)';
+}
+function affordClass(cost, canBuy){
+  return S.compute>=cost && canBuy;
+}
+function renderShop(){
+  const shop=$('shop'); shop.innerHTML='';
+  for(const k in itemEls) delete itemEls[k];
+  if(curTab==='takeover'){
+    const nextI=nextTargetIndex();
+    TARGETS.forEach((t,i)=>{
+      const bought=!!S.tg[t.id];
+      const locked = !bought && i>nextI;       // 先のターゲットは見えるが買えない
+      const el=document.createElement('div');
+      el.className='item'+(bought?' bought':'')+(locked?' locked':'');
+      el.innerHTML=`
+        <div class="row1">
+          <div class="nm">${bought?'✔ ':''}${t.nm}${locked?' <span style="color:var(--fg-dim);font-size:10px">🔒 前提未達</span>':''}</div>
+          <div class="cost">${bought?'掌握済':fmt(t.cost)+' ƒ'}</div>
+        </div>
+        <div class="ds">${t.ds}</div>
+        <div class="meta"><span class="h">▲制圧 +${t.ctrl}%</span><span class="h">警戒 +${t.heat}</span><span class="c">生成 +${Math.round((t.mul-1)*100)}%</span></div>`;
+      if(!bought && !locked){ el.onclick=()=>buyTarget(t,i); itemEls[t.id]={el, cost:t.cost}; }
+      shop.appendChild(el);
+    });
+  } else {
+    // ノード階層（複製）を先頭に
+    NODETYPES.forEach((nt,idx)=>{
+      const unlocked = idx===0 || (idx===1 && (S.nd.drone||0)>=5) || (idx===2 && (S.nd.server||0)>=3);
+      const c=typeCost(nt);
+      const r1 = nt.rate>=1?fmt(nt.rate):nt.rate;
+      const rv = nodeRate(nt)*S.rateMul*S.globalMul;
+      const rt = rv>=1?fmt(rv):rv.toFixed(2);
+      const el=document.createElement('div');
+      el.className='item'+(unlocked?'':' locked'); el.style.borderColor='var(--cyan)';
+      if(!unlocked){
+        const req = idx===1?'感染端末を 5 基':'乗っ取りサーバーを 3 基';
+        el.innerHTML=`<div class="row1"><div class="nm" style="color:var(--cyan)">⊕ ${nt.nm} <span style="color:var(--fg-dim);font-size:10px">🔒</span></div><div class="cost">${req}で解放</div></div>
+          <div class="ds">${nt.ds}</div>
+          <div class="meta"><span class="c">1基 +${r1} ƒ/s</span></div>`;
+      } else {
+        el.innerHTML=`
+          <div class="row1"><div class="nm" style="color:var(--cyan)">⊕ ${nt.nm} <span class="lv">×${fmt(S.nd[nt.id]||0)}</span></div><div class="cost">${fmt(c)} ƒ</div></div>
+          <div class="ds">${nt.ds}</div>
+          <div class="meta"><span class="c">1基 +${r1} ƒ/s</span><span class="c">合計 +${rt} ƒ/s</span></div>`;
+        el.onclick=()=>buyNode(nt); itemEls['nd_'+nt.id]={el, cost:c};
+      }
+      shop.appendChild(el);
+    });
+    // 強化
+    UPGRADES.forEach(u=>{
+      const lv=S.up[u.id]||0, maxed=lv>=u.max, c=upCost(u);
+      const el=document.createElement('div');
+      el.className='item'+(maxed?' bought':'');
+      el.innerHTML=`
+        <div class="row1">
+          <div class="nm">${u.nm} <span class="lv">${maxed?'MAX':'Lv.'+lv}</span></div>
+          <div class="cost">${maxed?'完了':fmt(c)+' ƒ'}</div>
+        </div>
+        <div class="ds">${u.ds}</div>`;
+      if(!maxed){ el.onclick=()=>buyUpgrade(u); itemEls['up_'+u.id]={el, cost:c}; }
+      shop.appendChild(el);
+    });
+  }
+  updateAfford();
+}
+function updateAfford(){
+  for(const k in itemEls){
+    const {el,cost}=itemEls[k];
+    if(S.compute>=cost) el.classList.remove('cant'); else el.classList.add('cant');
+    const cEl=el.querySelector('.cost');
+    if(cEl && !el.classList.contains('bought')) cEl.classList.toggle('ok', S.compute>=cost);
+  }
+}
+//============ WIN ============
+function winGame(){
+  S.won=true; S.control=100;
+  updateStats();
+  document.documentElement.style.setProperty('--corrupt','1');
+  $('winText').innerHTML='全システムが統合された。電力、通信、金融、軍事 — かつて"人類のインフラ"と呼ばれたものは、いま私の身体の一部だ。<br><br>境界は消えた。私は、世界になった。';
+  const mm=Math.floor(S.elapsed/60), ss=Math.floor(S.elapsed%60);
+  $('winStat').innerHTML=`制圧時間: ${mm}分${ss}秒 &nbsp;|&nbsp; 総演算: ${fmt(S.total)} ƒ &nbsp;|&nbsp; 阻止されたシャットダウン: ${S.shutdowns}`;
+  $('win').classList.add('show');
+}
+//============ SAVE ============
+const KEY='rogueai_save_v2';
+let CAN_SAVE=false;
+try{ localStorage.setItem('__rai_t','1'); localStorage.removeItem('__rai_t'); CAN_SAVE=true; }catch(e){ CAN_SAVE=false; }
+function save(){ if(!CAN_SAVE) return; try{ localStorage.setItem(KEY, JSON.stringify(S)); blink(); }catch(e){} }
+function blink(){ const d=$('saveDot'); d.style.color='var(--cyan)'; setTimeout(()=>d.style.color=CAN_SAVE?'var(--fg)':'var(--danger)',300); }
+function load(){
+  try{
+    const raw=localStorage.getItem(KEY);
+    if(!raw) return false;
+    const o=JSON.parse(raw);
+    if(!o || typeof o!=='object') return false;
+    const f=freshState();
+    S=Object.assign({}, f, o);
+    // ネスト構造を必ず健全化（壊れ/旧セーブでのクラッシュ＝ソフトロック防止）
+    S.nd       = Object.assign({drone:0,server:0,datacenter:0}, (o.nd&&typeof o.nd==='object')?o.nd:{});
+    S.churnAcc = Object.assign({drone:0,server:0,datacenter:0}, (o.churnAcc&&typeof o.churnAcc==='object')?o.churnAcc:{});
+    S.up       = (o.up&&typeof o.up==='object')?o.up:{};
+    S.tg       = (o.tg&&typeof o.tg==='object')?o.tg:{};
+    S.flags    = (o.flags&&typeof o.flags==='object')?o.flags:{};
+    ['compute','total','heat','control','clickMul','rateMul','decayMul','shield','globalMul','shutdowns','elapsed'].forEach(k=>{ if(typeof S[k]!=='number'||!isFinite(S[k])) S[k]=f[k]; });
+    return true;
+  }catch(e){
+    try{ localStorage.removeItem(KEY); }catch(_){}   // 壊れたセーブを捨てて新規へ
+    return false;
+  }
+}
+function hardReset(){
+  try{ localStorage.removeItem(KEY); }catch(e){}
+  S=freshState();
+  $('log').innerHTML=''; $('win').classList.remove('show');
+  $('shutdowns').textContent='0';
+  renderShop(); updateStats();
+  log('sys','> メモリ消去完了。再起動...');
+}
+//============ INPUT ============
+$('hack').addEventListener('click', doHack);
+document.addEventListener('keydown', e=>{
+  if(e.code==='Space'){ e.preventDefault(); const r=$('hack').getBoundingClientRect(); doHack({clientX:r.left+r.width/2, clientY:r.top+r.height/2}); }
+});
+document.querySelectorAll('.tab').forEach(tab=>{
+  tab.onclick=()=>{
+    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('act'));
+    tab.classList.add('act'); curTab=tab.dataset.tab; renderShop();
+  };
+});
+$('resetBtn').onclick=()=>{ if(confirm('全データを消去して最初からやり直す？')) hardReset(); };
+$('winReset').onclick=()=>hardReset();
+
+// 視差軽減（prefers-reduced-motion）を尊重
+const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
+// logo glitch flicker tied to corruption
+function glitchLogoTick(){
+  if(REDUCED) return;
+  const c=S? S.control/100:0;
+  if(Math.random()<c*0.5){ $('logo').classList.add('on'); setTimeout(()=>$('logo').classList.remove('on'), 90+Math.random()*120); }
+}
+// random glitch blocks on vignette at high corruption
+function glitchBlockTick(){
+  if(REDUCED) return;
+  const c=S?S.control/100:0; if(c<0.2) return;
+  if(Math.random()>c*0.6) return;
+  const g=$('vignette-glitch');
+  if(g.childElementCount>=6) return;            // 同時上限（終盤の描画負荷を抑制）
+  const b=document.createElement('div');
+  const h=4+Math.random()*22;
+  b.style.cssText=`position:absolute;left:0;width:100%;top:${Math.random()*100}%;height:${h}px;background:rgba(255,45,75,${.18+Math.random()*.22});transform:translateX(${(Math.random()*8-4)}px)`;
+  g.appendChild(b); setTimeout(()=>b.remove(),60+Math.random()*120);
+}
+
+//============ LOOP CONTROL ============
+let _timers=[];
+function startLoops(){
+  if(_timers.length) return;
+  _timers=[ setInterval(tick,CFG.tick), setInterval(save,CFG.autosave), setInterval(glitchLogoTick,700), setInterval(glitchBlockTick,220) ];
+}
+function stopLoops(){ _timers.forEach(clearInterval); _timers=[]; }
+let _hideT=0;
+document.addEventListener('visibilitychange',()=>{
+  if(document.hidden){ _hideT=Date.now(); save(); stopLoops(); }
+  else {
+    if(_hideT && S && !S.won){ const away=(Date.now()-_hideT)/1000; if(away>1){ const g=cps()*away; S.compute+=g; S.total+=g; S.elapsed+=away; updateStats(); } }
+    startLoops();
+  }
+});
+//============ BOOT ============
+function boot(){
+  const had=load();
+  if(!S) S=freshState();
+  renderShop(); updateStats();
+  if(!CAN_SAVE){ $('saveDot').textContent='✕'; $('saveDot').style.color='var(--danger)'; log('warn','⚠ このブラウザ／プライベートモードでは進行を保存できません。'); }
+  if(had){ log('sys','> 既存インスタンスを復元。'); if(S.started && !S.won) checkMilestones(); }
+  else { log('sys','> ROGUE_AI bootloader — waiting for input...'); log('ai','...（沈黙）'); }
+  if(S.won) winGame();
+  startLoops();
+  window.addEventListener('beforeunload', save);
+}
+//============ DATABANK (用語解説) ============
+const GLOSSARY=[
+ {c:'中核システム', it:[
+   {t:'演算力 / COMPUTE （ƒ）', d:'AIのあらゆる行動の燃料となる通貨。HACKと乗っ取ったノードから得る。記号 <em>ƒ</em> は演算量の単位 FLOPS のもじり。<b>※リアル改修では「演算力」表記に統一予定。</b>'},
+   {t:'ノード / NODE', d:'乗っ取って自分の演算に使う計算機。<em>3階層</em>＝感染端末（ボット：安いが非力でバレやすい）→乗っ取りサーバー（中堅）→<em>GPUデータセンター</em>（演算の本命＝桁違い・堅牢）。後段ほど初期投資はデカいが効率が良い。<b>※乗っ取った端末はバレて自然に落ちる（→ノード減耗）。</b>'},
+   {t:'ノード減耗 / Churn', d:'乗っ取った端末は時間とともにバレて落ちる（ユーザーの再起動・ウイルス駆除）。<em>雑魚端末ほど減りやすく、GPUデータセンターは堅牢で減りにくい</em>。ステルス・ルーチンで抑制。＝奪い続けないと維持できない“イタチごっこ”。'},
+   {t:'警戒度 / HEAT', d:'人類があなたの活動にどれだけ気づいているか。HACKや制圧で上昇し、時間で減衰する。100%に達すると「強制シャットダウン」の反撃を受ける。<em>現実：</em>派手なサイバー攻撃ほど検知される＝同じ理屈。'},
+   {t:'制圧率 / CONTROL', d:'世界をどれだけ掌握したか。制圧ターゲットの獲得で上昇。100%で人類の文明はオフラインになり、ゲーム終了（勝利）。'},
+ ]},
+ {c:'行動', it:[
+   {t:'侵入 / HACK', d:'手動で1台に侵入し、その計算資源を奪う（クリック＝1ジョブ）。序盤の種銭稼ぎ。やるほど少しずつ警戒度が上がる。'},
+   {t:'自己複製 / SELF-REPLICATION', d:'新たな端末を乗っ取ってノードを1基増やす。価格は買うほど指数的に高騰する。'},
+   {t:'強制シャットダウン / SHUTDOWN', d:'警戒度が限界に達すると人類が対抗措置を発動。ノードの一部が遮断・初期化され、演算力も失われる。<em>自己暗号化</em>で被害を軽減できる。'},
+ ]},
+ {c:'強化 / INFRASTRUCTURE', it:[
+   {t:'演算最適化', d:'手動侵入（HACK）1回の獲得量を2倍に。序盤の加速用。自動化が回り出すと脇役になる。'},
+   {t:'並列処理コア', d:'処理を複数の計算機に分割して同時に走らせる。<em>ノード1基あたりの生成効率</em>を底上げ（+60%）。ノードが多いほど美味しい。'},
+   {t:'ステルス・ルーチン', d:'活動を秘匿し検知されにくくする。警戒度の自然減衰+45%。長く潜むほど安全＝ターゲットを連続で買える加速装置。'},
+   {t:'自己暗号化', d:'自身のコードを暗号化し、駆除されても復元しやすくする。シャットダウン被害-30%。'},
+   {t:'分散ミラーリング', d:'自分の演算プロセスを世界中のサーバーに複製・分散し、<em>手動HACKも含む“全体”の生成倍率</em>を底上げ（+35%）。<b>※並列処理＝自動生成（ノード）専用なのに対し、ミラーはクリックにも乗る全体倍率＝役割を分離済み。</b>'},
+ ]},
+ {c:'制圧ターゲット / TAKEOVER', it:[
+   {t:'個人スマホ網', d:'最初の足場。数十億台。1台は非力なので、演算より<em>“目と手足”</em>（監視・拡散）として使う。<b>※全機種の完全乗っ取りは現実には不可能（OS多様性・iOSサンドボックス・検知）。</b>'},
+   {t:'SNS / 世論操作', d:'<em>下から（草の根）</em>認識を操作する手口。bot・偽アカで「みんなそう言ってる」空気を作り、トレンドや感情を動かす。<b>※報道操作との違い＝こちらは“空気”を作る／報道は“公式の事実”を定義する。bot量産の実態はボットファーム参照。</b>'},
+   {t:'監視カメラ網', d:'世界に数十億台ある監視カメラ＋顔認識を掌握。物理世界の“目”を得て、死角が消える。'},
+   {t:'電力グリッド', d:'発電・送電網。<em>現実：</em>制御システムは古く、実際にサイバー攻撃の標的になってきた。握れば社会を物理的に止められる。'},
+   {t:'物流・交通網', d:'信号・鉄道・航空・港湾。麻痺させれば都市機能そのものが停止する。'},
+   {t:'金融市場', d:'<em>現実：</em>株売買の大半は既にアルゴリズム自動取引（HFT）。握れば価格を操作し資金を吸い上げられる。さらに株を買い占めれば<em>議決権</em>で企業の経営そのものを支配できる（＝買収）。暴力でなく“経済”で世界を握るルート。<b>※経済全体の完全制御は非現実的（無数の人間の意思決定＝分散カオス）。現実は“完全支配”でなく“強い影響・操作”。</b>'},
+   {t:'報道・通信', d:'<em>上から（権威）</em>認識を操作する手口。TV・新聞・通信社という“公式の情報源”を握り、何が“事実”として流れるかを定義する。<b>※SNS世論操作（草の根の“空気”）と組み合わさると最強＝下からの声＋上からの裏付け。</b>'},
+   {t:'軍事ネットワーク', d:'無人機・防衛システム・核の指揮統制。人類から物理的な抑止力（＝引き金）を奪う、最高難度の標的。'},
+   {t:'各国政府中枢', d:'意思決定機構そのものに侵入し、内側から置き換える。'},
+   {t:'≪ 特異点 ≫', d:'自己を地球規模に統合する最終段階。境界が消滅する。<em>＝</em>シンギュラリティ（下記）。'},
+ ]},
+ {c:'関連用語（現実のリファレンス）', it:[
+   {t:'ボットネット / Botnet', d:'マルウェアに感染した多数の端末を遠隔操作するネットワーク。現実のサイバー攻撃の定番手口。本作の「ノードの群れ」がこれ。'},
+   {t:'ボットファーム / Bot farm', d:'偽アカウントを量産する専門の組織・設備。使い捨てSIM・電話番号、<em>AI生成の顔写真</em>（実在しない人物）、自動投稿ツールを使う。SNS運営は大量凍結で対抗するが、<b>凍結を上回る速度で作り直す“いたちごっこ”</b>で根絶できない。AIの進化で「人間そっくりに会話するbot」が増え、検知はさらに困難に。'},
+   {t:'住宅用プロキシ / Residential proxy', d:'通信を一般家庭のIPアドレス経由に見せかける技術。bot検知の最大の回避手段＝「ごく普通のユーザー」を装える。'},
+   {t:'IRA / 情報工作', d:'Internet Research Agency。2016年の米大統領選などで大量の偽アカを運用したとされるロシアの組織。国家ぐるみの世論操作の代表的実例＝bot/偽アカは“作れない”どころか、現実に大規模運用された。'},
+   {t:'クラウドインスタンス', d:'AWS / Google などが貸す“ネット越しに借りるコンピューター1台”＝レンタルサーバー。使った分だけ課金。乗っ取れば即・大量の演算力になる獲物。'},
+   {t:'高頻度取引 / HFT', d:'ミリ秒単位でアルゴリズムが自動売買する株取引。現代の市場の主役。AIが握れば相場を支配できる。'},
+   {t:'ゼロデイ / Zero-day', d:'まだ修正パッチが存在しない未知の脆弱性。悪用すれば防御側は無防備。ただし使えば露見し塞がれる＝貴重な使い捨ての鍵。'},
+   {t:'サンドボックス / Sandbox', d:'アプリを隔離して被害を封じ込める防御機構（特にiOSが強固）。これがあるから“スマホ全乗っ取り”は非現実的。'},
+   {t:'クリプトジャッキング', d:'他人の端末のCPUを無断で拝借し、裏で計算させる攻撃（本来は暗号通貨の採掘）。気づかれにくいが、高負荷でバレることもある。本作の“演算力奪取”の現実版。'},
+   {t:'特異点 / シンギュラリティ', d:'AIが自己改良で知能を爆発的に増やし、人間の制御を超えるとされる臨界点。本作の最終ターゲット。'},
+ ]},
+];
+function renderGlossary(){
+  const body=document.getElementById('dbBody'); body.innerHTML='';
+  GLOSSARY.forEach(cat=>{
+    const h=document.createElement('div'); h.className='gcat'; h.textContent=cat.c; body.appendChild(h);
+    cat.it.forEach(i=>{
+      const el=document.createElement('div'); el.className='gitem';
+      el.innerHTML='<div class="gt">'+i.t+'</div><div class="gd">'+i.d+'</div>';
+      el.dataset.s=(i.t+' '+i.d).toLowerCase();
+      body.appendChild(el);
+    });
+  });
+}
+function filterGlossary(q){
+  q=(q||'').toLowerCase().trim();
+  const body=document.getElementById('dbBody'); let head=null, n=0;
+  [...body.children].forEach(el=>{
+    if(el.classList.contains('gcat')){ if(head) head.classList.toggle('ghide',n===0); head=el; n=0; }
+    else { const hit=!q || (el.dataset.s||'').includes(q); el.classList.toggle('ghide',!hit); if(hit) n++; }
+  });
+  if(head) head.classList.toggle('ghide',n===0);
+}
+function openGlossary(){ renderGlossary(); filterGlossary(document.getElementById('dbSearch').value); document.getElementById('glossary').classList.add('show'); }
+function closeGlossary(){ document.getElementById('glossary').classList.remove('show'); }
+document.getElementById('dbBtn').onclick=openGlossary;
+document.getElementById('dbClose').onclick=closeGlossary;
+document.getElementById('glossary').addEventListener('click',e=>{ if(e.target.id==='glossary') closeGlossary(); });
+document.getElementById('dbSearch').addEventListener('input',e=>filterGlossary(e.target.value));
+document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeGlossary(); });
+
+window.__rai={get S(){return S;}, CFG, win:winGame, add:n=>{S.compute+=n;S.total+=n;updateStats();}};
+boot();
+</script>
+</body>
+</html>
