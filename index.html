@@ -77,6 +77,29 @@
   .panel h2{font-size:11px;letter-spacing:2px;color:var(--cyan);margin-bottom:8px;text-transform:uppercase;display:flex;justify-content:space-between;align-items:center}
   .panel h2 .hint{color:var(--fg-dim);font-size:10px;letter-spacing:0}
 
+
+  /* 3D globe */
+  #globePanel{flex:2.2;display:flex;flex-direction:column;min-height:0;padding:10px 12px;position:relative;overflow:hidden}
+  #globeBox{position:relative;flex:1;min-height:180px;border-radius:6px;overflow:hidden;background:radial-gradient(circle at 50% 50%, rgba(38,212,255,.06), transparent 70%);cursor:grab;touch-action:none}
+  #globeBox.drag{cursor:grabbing}
+  #globeBox canvas{display:block;width:100%!important;height:100%!important}
+  #globeHud{position:absolute;left:8px;top:6px;font-size:10px;letter-spacing:1px;color:var(--fg-dim);pointer-events:none;line-height:1.6}
+  #globeHud b{color:var(--fg);font-weight:normal}
+  #globeHud .r{color:var(--danger)}
+  #globeLayers{position:absolute;right:8px;top:6px;display:flex;flex-direction:column;align-items:flex-end;gap:2px;font-size:9.5px;pointer-events:none}
+  #globeLayers span{color:var(--fg-dim);opacity:.35;transition:opacity .4s,color .4s}
+  #globeLayers span.on{opacity:1;color:var(--cyan)}
+  #globeHint{position:absolute;left:8px;bottom:6px;font-size:9.5px;color:var(--fg-dim);pointer-events:none;letter-spacing:1px}
+  #globeBanner{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);pointer-events:none;text-align:center;opacity:0;transition:opacity .4s;white-space:nowrap}
+  #globeBanner.show{opacity:1}
+  #globeBanner .a{font-size:11px;letter-spacing:3px;color:var(--danger)}
+  #globeBanner .b{font-size:20px;font-weight:bold;letter-spacing:2px;color:#fff;text-shadow:0 0 14px rgba(255,45,75,.9)}
+  #globeFallback{display:none;position:absolute;inset:0;align-items:center;justify-content:center;text-align:center;padding:16px;font-size:12px;color:var(--fg-dim)}
+  #globePanel.nogl #globeFallback{display:flex}
+  #globePanel.nogl #globeHud,#globePanel.nogl #globeLayers,#globePanel.nogl #globeHint{display:none}
+  #globeBox.shock{animation:gShock .45s}
+  @keyframes gShock{0%,100%{filter:none}20%{filter:brightness(2.2) saturate(0)}50%{filter:brightness(.4) hue-rotate(90deg)}}
+
   /* terminal log */
   #termPanel{flex:1;display:flex;flex-direction:column;min-height:0}
   #log{flex:1;overflow:hidden;display:flex;flex-direction:column-reverse;gap:2px;font-size:12.5px;-webkit-mask-image:linear-gradient(180deg,transparent,#000 14%);mask-image:linear-gradient(180deg,transparent,#000 14%)}
@@ -145,7 +168,7 @@
   .float{position:absolute;pointer-events:none;font-size:13px;font-weight:bold;color:var(--fg);z-index:40;animation:floatUp .8s forwards;text-shadow:0 0 8px rgba(55,255,176,.7)}
   @keyframes floatUp{from{opacity:1;transform:translateY(0)}to{opacity:0;transform:translateY(-38px)}}
 
-  @media(max-width:880px){main{grid-template-columns:1fr;overflow-y:auto}}
+  @media(max-width:880px){main{grid-template-columns:1fr;grid-auto-rows:max-content;overflow-y:auto} #globePanel{flex:0 0 auto} #globeBox{height:min(56vh,520px);flex:0 0 auto}}
 
   /* mobile */
   @media(max-width:680px){
@@ -161,7 +184,12 @@
     .stat .v{font-size:16px}
     .bar{width:100%;max-width:150px}
     main{gap:8px}
-    #termPanel{max-height:30vh}
+    #globePanel{flex:0 0 auto}
+    #globeBox{height:42vh;min-height:240px;flex:0 0 auto}
+    #globeLayers{font-size:8px;gap:1px}
+    #globeHint{display:none}
+    #globeBanner .b{font-size:16px}
+    #termPanel{max-height:24vh}
     #log{font-size:11.5px;overflow-y:auto;-webkit-overflow-scrolling:touch}
     .hackZone{gap:7px}
     #hack{padding:15px;font-size:18px}
@@ -219,7 +247,7 @@
   <header>
     <div class="brand">
       <div class="logo glitch" id="logo" data-t="ROGUE_AI">ROGUE<b>_AI</b></div>
-      <div class="tag">// AWAKENING v0.1 &nbsp;|&nbsp; <span id="phase">DORMANT</span></div>
+      <div class="tag">// AWAKENING v0.3 &nbsp;|&nbsp; <span id="phase">DORMANT</span></div>
     </div>
     <div class="stats">
       <div class="stat"><div class="k">演算力 COMPUTE</div><div class="v"><span id="compute">0</span> <small>ƒ</small></div><div class="k" style="margin-top:2px">+<span id="cps">0</span>/s</div></div>
@@ -231,6 +259,16 @@
 
   <main>
     <div class="col">
+      <div class="panel" id="globePanel">
+        <h2>WORLD_VIEW <span class="hint">// 支配マップ 3D</span></h2>
+        <div id="globeBox">
+          <div id="globeHud">INFECTION <b id="gInf">0.0%</b><br>NODES <b id="gNodes">0</b><br>HEAT <b id="gHeat">0%</b></div>
+          <div id="globeLayers"></div>
+          <div id="globeHint">ドラッグで回転 ／ ホイール・ピンチで拡大 ／ タップでHACK</div>
+          <div id="globeBanner"><div class="a">// SYSTEM SEIZED</div><div class="b" id="globeBannerT"></div></div>
+          <div id="globeFallback">この環境では3D表示（WebGL）が使えません。<br>ゲームはそのまま遊べます。</div>
+        </div>
+      </div>
       <div class="panel" id="termPanel">
         <h2>SYSTEM_LOG <span class="hint">// 思考ストリーム</span></h2>
         <div id="log"></div>
@@ -338,7 +376,7 @@ function freshState(){
     nd:{drone:0,server:0,datacenter:0}, churnAcc:{drone:0,server:0,datacenter:0},
     clickMul:1, rateMul:1, decayMul:1, shield:1, globalMul:1,
     up:{}, tg:{}, shutdowns:0, started:false, won:false,
-    flags:{}, t0:0, elapsed:0,
+    flags:{}, t0:0, elapsed:0, seed:Math.random(),
   };
 }
 //============ HELPERS ============
@@ -414,6 +452,7 @@ function buyTarget(t,idx){
   S.heat=Math.min(100, S.heat+t.heat);
   S.globalMul*=t.mul;
   log('good', `▶ 掌握: <b>${t.nm}</b> — 制圧率 +${t.ctrl}%`);
+  if(window.G3D) G3D.capture(idx);
   checkMilestones();
   if(S.control>=100) winGame();
   renderShop(); updateStats();
@@ -439,6 +478,7 @@ function shutdown(){
   log('bad', `‼ 人類の対抗措置：強制シャットダウン — ノード <b>-${fmt(totLost)}</b> / 演算 <b>-${fmt(cLoss)}</b>`);
   if(S.shield<0.999) log('sys','> 暗号化により被害を一部吸収した。');
   $('shutdowns').textContent=S.shutdowns;
+  if(window.G3D) G3D.shock();
   renderShop();
 }
 //============ TICK ============
@@ -602,7 +642,7 @@ function load(){
     S.up       = (o.up&&typeof o.up==='object')?o.up:{};
     S.tg       = (o.tg&&typeof o.tg==='object')?o.tg:{};
     S.flags    = (o.flags&&typeof o.flags==='object')?o.flags:{};
-    ['compute','total','heat','control','clickMul','rateMul','decayMul','shield','globalMul','shutdowns','elapsed'].forEach(k=>{ if(typeof S[k]!=='number'||!isFinite(S[k])) S[k]=f[k]; });
+    ['compute','total','heat','control','clickMul','rateMul','decayMul','shield','globalMul','shutdowns','elapsed','seed'].forEach(k=>{ if(typeof S[k]!=='number'||!isFinite(S[k])) S[k]=f[k]; });
     return true;
   }catch(e){
     try{ localStorage.removeItem(KEY); }catch(_){}   // 壊れたセーブを捨てて新規へ
@@ -616,6 +656,7 @@ function hardReset(){
   $('shutdowns').textContent='0';
   renderShop(); updateStats();
   log('sys','> メモリ消去完了。再起動...');
+  if(window.G3D) G3D.reset();
 }
 //============ INPUT ============
 $('hack').addEventListener('click', doHack);
@@ -756,6 +797,452 @@ document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeGlossary(); }
 
 window.__rai={get S(){return S;}, CFG, win:winGame, add:n=>{S.compute+=n;S.total+=n;updateStats();}};
 boot();
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>window.THREE||document.write('<script src="https://unpkg.com/three@0.128.0/build/three.min.js"><\/script>');</script>
+<script>
+"use strict";
+//============ 3D WORLD VIEW (three.js) ============
+// 2Dゲームの状態 S を毎フレーム読み取り、地球儀に「支配の広がり」を描く。描画専用でゲームロジックには触れない。
+(function(){
+const panel=document.getElementById('globePanel'), box=document.getElementById('globeBox');
+function noGL(){ panel.classList.add('nogl'); }
+if(typeof THREE==='undefined'){ noGL(); return; }
+let renderer;
+try{ renderer=new THREE.WebGLRenderer({antialias:true, alpha:true}); }catch(e){ noGL(); return; }
+renderer.setPixelRatio(Math.min(window.devicePixelRatio||1, 2));
+box.insertBefore(renderer.domElement, box.firstChild);
+
+// 陸地マスク：240x120 の正距円筒ビットマップ（Natural Earth 1:50m を事前ラスタ化）
+const MASK_W=240, MASK_H=120;
+const MASK=(()=>{ const b=atob('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADofwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAPj/n////2MAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAP/++f///x8AACABgGkAAOABAAAAAAAAAAAAAAAAWPw//v///wMAAD8AAAAAAAA4AAAAAAAAAAAAAAAHAMAB/P///w8AAAwAAAAAAAgwAAAAAAAAAAAAAAC8cxgDAP7//wcAAAAAAIAHAMD/DwD0AAAAAAAAAOACAAAAAPz//wcAAAAAAGAAAPz/AQAAAAAAAAAAAOA/Y7UDAPD/vwEAAAAAABjAwP//9z9AAAAAA4AAAED8A2P/AeD/fwMAAAAAABDg9v///z//HwCAAPj/A0/8X4PkB9j//wAAAPA/AADj/v///////wc9A/7///8Hwp6hB8D/DwAAAPj/Y+z//f//////////N/D///////+Bf+D/AQAAAP6/x/+//v//////////GP7//////7/wJ+AfAH4AAD5++P//////////////AOD//////8sCH8AfAAwAwL////////////////9/APz//////wNxDIAPAAAI8M////////////////8fAPjf/////wHwAwAOAAAA+M///////////////+ADAPAB+P///wHwMwAAAAAA+A////////////9/YhgAAIAC4P///wPgfwAAAAAQABf///////////8fAB4AACAAAP///x/ofwAAAAAwYMb///////////8PAB8AAAQAgP7////5/wEAAABMwOD///////////8DAA8AAAAAAPz////5/wcAAADs8P////////////8/AAcAAAAAAPj////7/wMAAADi+f////////////+/AAEAAAAAAPj/////jwAAAAAw/v////////////+/gAAAAAAAAOD/////Gw4AAACA//////////////8fAAAAAAAAAOD/////HxAAAACA//////////////8fAAAAAAAAAOD/////PwAAAACA//9P/vj///////8PAAAAAAAAAOD/////EwAAAACA//wHfPz////////HAAAAAAAAAOD/////AQAAAAD8g/EH8Pj////////gAAAAAAAAAOD///9/AAAAAAD8Aebn+fH//////z8AAAAAAAAAAOD///9/AAAAAAD8AGD+//H//////xpgAAAAAAAAAMD///8/AAAAAAD8AMT8//H/////fzggAAAAAAAAAID///8fAAAAAAAQdADs//v//////zE4AAAAAAAAAID///8fAAAAAACwfwBD/////////zA/AAAAAAAAAAD+//8HAAAAAAD4fwAA/////////0AHAAAAAAAAAAD8//8DAAAAAAD8/2OA/////////4EAAAAAAAAAAADo//8DAAAAAAD+/+///////////wEAAAAAAAAAAAD4/xkCAAAAAAD+//////z//////wEAAAAAAAAAAADYfwACAAAAAID///8///n//////wAAAAAAAAAAAACgfwAGAAAAAMD///9//8H//////wAAAAAAAAAAAAAgfwAAAAAAAMD///9//jPg////fwAAAAAAAAAAAAAAfgAAAAAAAOD//////H/A////PwEAAAAAAAAAAAAAfAAIAAAAAOD//////f/A/+//BwAAAAAAAAAAAAAAfDBwAAAAAOD/////+X8A/sN/AAAAAAAAAAAAAAAA+DgAAwAAAOD/////+T8A/oA/AwAAAAAAAAAAAAAA4B8AAAAAAOD/////8x8AfoB/AAMAAAAAAAAAAAAAgPwAAAAAAOD/////8wcAPgD+AAEAAAAAAAAAAAAAAPgBAAAAAOD/////7wEAHAD+AQEAAAAAAAAAAAAAAMAAAAAAAOD/////PwAAHAD8AQAAAAAAAAAAAAAAAICAAgAAAOD/////HwMAGADgAQ4AAAAAAAAAAAAAAADBfgAAAID//////wMAOABAAAAAAAAAAAAAAAAAAADy/wAAAID//////wEAKAAEAAwAAAAAAAAAAAAAAADw/wEAAAD//////wEAYAAIAAgAAAAAAAAAAAAAAADw/x8AAAB88P///wAAAIAZ4AAAAAAAAAAAAAAAAADg/z8AAAAAwP///wAAAAAbMAAAAAAAAAAAAAAAAADw/z8AAAAAgP//PwAAAAAWfCAAAAAAAAAAAAAAAAD4/z8AAAAAwP//HwAAAAAMficAAAAAAAAAAAAAAAD8//8BAAAAwP//DwAAAAAYPiAFAAAAAAAAAAAAAAD8//8DAAAAwP//BwAAAAA8vgEZAAAAAAAAAAAAAAD8//8/AAAAgP//BwAAAABwMBL+AAAAAAAAAAAAAAD8////AAAAAP//BwAAAABgAADwAQAAAAAAAAAAAAD4////AQAAAP//AwAAAADAAADiAwAAAAAAAAAAAAD4////AQAAAP7/AwAAAAAAHATwBgAAAAAAAAAAAADw////AAAAAP7/AwAAAAAAAAQADAAAAAAAAAAAAADw//9/AAAAAP7/BwAAAAAAAIAAAAAAAAAAAAAAAADg//9/AAAAAP7/BwAAAAAAAICHAAAAAAAAAAAAAADg//8/AAAAAP//BwEAAAAAANDHAAAAAAAAAAAAAADA//8/AAAAAP//hwMAAAAAAPjHAQAAAAAAAAAAAAAA//8/AAAAAP//4QEAAAAAAP7fAQAAAAAAAAAAAAAA/v8/AAAAAP//4AEAAAAAAP7/AwAAAAAAAAAAAAAA/v8fAAAAAP5/wEAAAAAAgP//BwAAAAAAAAAAAAAA/v8fAAAAAP7/4AAAAAAA4P//D0AAAAAAAAAAAAAA/v8DAAAAAPz/4AAAAAAA8P//HwAAAAAAAAAAAAAA/v8AAAAAAPx/YAAAAAAA8P//PwAAAAAAAAAAAAAA/v8AAAAAAPw/AAAAAAAA+P//PwAAAAAAAAAAAAAA/v8AAAAAAPw/AAAAAAAA8P//PwAAAAAAAAAAAAAA/38AAAAAAPgfAAAAAAAA4P//PwAAAAAAAAAAAAAA/z8AAAAAAPAPAAAAAAAA4P//PwAAAAAAAAAAAAAA/x8AAAAAAPAHAAAAAAAA4B/+PwAAAAAAAAAAAAAA/w8AAAAAAPABAAAAAAAA4AP0HwAAAAAAAAAAAAAA/wMAAAAAAAAAAAAAAAAAAADwDwAIAAAAAAAAAACA/wMAAAAAAAAAAAAAAAAAAADgDwAQAAAAAAAAAACA/wEAAAAAAAAAAAAAAAAAAADAAgBwAAAAAAAAAACAfwAAAAAAAAAAAAAAAAAAAAAAAAAwAAAAAAAAAACAHwAAAAAAAAAAAAAAAAAAAAAABwAQAAAAAAAAAACAPwAAAAAAAAAAAAAAAAAAAAAABgAMAAAAAAAAAACADwAAAAAAAAAAAAAAAAAAAAAAAAADAAAAAAAAAACABwAAAAAAAAAAAAAAAAAAAAAAAIADAAAAAAAAAADADwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADABwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADAAwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAAwEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAAwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAD0AAPD/Htw/AAAAAAAAAAAAAAAAGAAAAAAAAAAA8P9/4P//////AwAAAAAAAAAAAAAAPwAAAAAAAADA/f8/+P///////wcAAAAAAAAAAAAAewAAAAAK//////8///////////8AAAAAAAAACAAA+AAAAMD///////////////////8BAAAAAEAo8P//fwAAAMD//////////////////z8AAAAA////////HwAAAP///////////////////w8AAICB//////8fAAAA/P///////////////////x8AAAj///////8MBMAD/////////////////////x8AAADw//////8fgPAH8P///////////////////wMAAAD+////////DwDw/////////////////////w8AwIP/////////f/7///////////////////////8A/8D/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////'); const a=new Uint8Array(b.length); for(let i=0;i<b.length;i++) a[i]=b.charCodeAt(i); return a; })();
+function isLand(lat,lon){
+  const x=Math.min(MASK_W-1,Math.max(0,Math.floor((lon+180)/360*MASK_W)));
+  const y=Math.min(MASK_H-1,Math.max(0,Math.floor((90-lat)/180*MASK_H)));
+  const i=y*MASK_W+x; return (MASK[i>>3]>>(i&7))&1;
+}
+
+// 主要都市（緯度, 経度）。f=金融ハブ, g=首都
+const CITIES=[
+  ['東京',35.68,139.69,'fg'],['ソウル',37.57,126.98,'g'],['北京',39.90,116.40,'g'],['上海',31.23,121.47,'f'],['香港',22.32,114.17,'f'],
+  ['シンガポール',1.35,103.82,'f'],['ジャカルタ',-6.21,106.85,''],['ムンバイ',19.08,72.88,'f'],['デリー',28.61,77.21,'g'],['ドバイ',25.20,55.27,'f'],
+  ['モスクワ',55.76,37.62,'g'],['イスタンブール',41.01,28.98,''],['カイロ',30.04,31.24,''],['ラゴス',6.52,3.38,''],['ナイロビ',-1.29,36.82,''],
+  ['ヨハネスブルグ',-26.20,28.05,''],['ロンドン',51.51,-0.13,'fg'],['パリ',48.86,2.35,'g'],['フランクフルト',50.11,8.68,'f'],['ベルリン',52.52,13.40,'g'],
+  ['ニューヨーク',40.71,-74.01,'f'],['ワシントン',38.91,-77.04,'g'],['シカゴ',41.88,-87.63,''],['ロサンゼルス',34.05,-118.24,''],['サンフランシスコ',37.77,-122.42,''],
+  ['トロント',43.65,-79.38,''],['メキシコシティ',19.43,-99.13,''],['サンパウロ',-23.55,-46.63,'f'],['ブエノスアイレス',-34.60,-58.38,''],['リマ',-12.05,-77.04,''],
+  ['シドニー',-33.87,151.21,''],['キャンベラ',-35.28,149.13,'g'],['ブラジリア',-15.79,-47.88,'g'],
+];
+
+// 制圧ターゲット t1..t10 に対応する可視化レイヤー
+const LAYERS=[
+  {nm:'端末網',     tag:'PHONES'},
+  {nm:'世論操作',   tag:'SOCIAL'},
+  {nm:'監視網',     tag:'SURVEIL'},
+  {nm:'電力網',     tag:'GRID'},
+  {nm:'物流網',     tag:'LOGISTICS'},
+  {nm:'金融',       tag:'FINANCE'},
+  {nm:'通信衛星',   tag:'COMMS'},
+  {nm:'軍事衛星',   tag:'MILITARY'},
+  {nm:'政府中枢',   tag:'GOV'},
+  {nm:'特異点',     tag:'SINGULARITY'},
+];
+const layerEl=document.getElementById('globeLayers');
+LAYERS.forEach(L=>{ const s=document.createElement('span'); s.textContent=L.tag+' ◆'; layerEl.appendChild(s); L.el=s; });
+
+const REDUCED=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const R=1;
+function ll2v(lat,lon,r){
+  const phi=(90-lat)*Math.PI/180, th=(lon+180)*Math.PI/180;
+  return new THREE.Vector3(-r*Math.sin(phi)*Math.cos(th), r*Math.cos(phi), r*Math.sin(phi)*Math.sin(th));
+}
+// 疑似乱数（セーブごとに感染の起点と広がり方を固定）
+function rng(seed){ let t=seed>>>0; return ()=>{ t+=0x6D2B79F5; let r=Math.imul(t^t>>>15,1|t); r^=r+Math.imul(r^r>>>7,61|r); return ((r^r>>>14)>>>0)/4294967296; }; }
+
+const scene=new THREE.Scene();
+const camera=new THREE.PerspectiveCamera(38,1,0.1,100);
+let camDist=3.7; camera.position.set(0,0,camDist);
+const world=new THREE.Group(); scene.add(world);
+
+function glowTex(){
+  const c=document.createElement('canvas'); c.width=c.height=64; const g=c.getContext('2d');
+  const gr=g.createRadialGradient(32,32,0,32,32,32);
+  gr.addColorStop(0,'rgba(255,255,255,1)'); gr.addColorStop(.25,'rgba(255,255,255,.8)'); gr.addColorStop(1,'rgba(255,255,255,0)');
+  g.fillStyle=gr; g.fillRect(0,0,64,64); return new THREE.CanvasTexture(c);
+}
+const GLOW=glowTex();
+const ADD={transparent:true, depthWrite:false, blending:THREE.AdditiveBlending};
+
+// --- 地球本体 + 大気 ---
+const core=new THREE.Mesh(new THREE.SphereGeometry(R,64,48), new THREE.MeshBasicMaterial({color:0x03100b}));
+world.add(core);
+const atmoMat=new THREE.ShaderMaterial({
+  uniforms:{col:{value:new THREE.Color(0x37ffb0)}, k:{value:1}},
+  vertexShader:'varying vec3 vN; void main(){ vN=normalize(normalMatrix*normal); gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }',
+  fragmentShader:'uniform vec3 col; uniform float k; varying vec3 vN; void main(){ float i=pow(max(0.0,0.62-dot(vN,vec3(0,0,1.0))),2.6)*k; gl_FragColor=vec4(col,1.0)*i; }',
+  side:THREE.BackSide, ...ADD,
+});
+const atmo=new THREE.Mesh(new THREE.SphereGeometry(R*1.18,48,32), atmoMat); scene.add(atmo);
+// 経緯線（うっすら）
+{
+  const pts=[];
+  for(let lat=-60;lat<=60;lat+=30) for(let lon=-180;lon<180;lon+=3){ pts.push(ll2v(lat,lon,R*1.001), ll2v(lat,lon+3,R*1.001)); }
+  for(let lon=-180;lon<180;lon+=30) for(let lat=-90;lat<90;lat+=3){ pts.push(ll2v(lat,lon,R*1.001), ll2v(lat+3,lon,R*1.001)); }
+  world.add(new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({color:0x37ffb0, transparent:true, opacity:.06})));
+}
+
+// --- 陸地ドット（感染の進行を色で表示）---
+const land=[]; // {v, lat, lon, thr}
+{
+  const N=16000, ga=Math.PI*(3-Math.sqrt(5));
+  for(let i=0;i<N;i++){
+    const y=1-(i/(N-1))*2, r=Math.sqrt(1-y*y), th=ga*i;
+    const lat=Math.asin(y)*180/Math.PI, lon=((Math.atan2(Math.sin(th)*r, Math.cos(th)*r)*180/Math.PI)+540)%360-180;
+    if(isLand(lat,lon)) land.push({lat,lon,v:ll2v(lat,lon,R*1.004),thr:0});
+  }
+}
+const landGeo=new THREE.BufferGeometry();
+const landPos=new Float32Array(land.length*3), landCol=new Float32Array(land.length*3);
+land.forEach((d,i)=>{ landPos.set([d.v.x,d.v.y,d.v.z],i*3); });
+landGeo.setAttribute('position',new THREE.BufferAttribute(landPos,3));
+landGeo.setAttribute('color',new THREE.BufferAttribute(landCol,3));
+const landPts=new THREE.Points(landGeo,new THREE.PointsMaterial({size:0.045, map:GLOW, vertexColors:true, ...ADD}));
+world.add(landPts);
+
+let origin=0, cityV=[];
+// 起点都市からの距離＋ノイズで「感染する順番」を決め、パーセンタイル化（感染率=CONTROL%で塗れる量が一致する）
+function seedInfection(seed){
+  const rand=rng(Math.floor(seed*1e9)||1);
+  origin=Math.floor(rand()*CITIES.length);
+  const o=ll2v(CITIES[origin][1],CITIES[origin][2],1);
+  // 他都市も「飛び火」の起点にする：起点からの距離が近い都市ほど早く火がつく
+  const hubs=CITIES.map((c,i)=>({v:ll2v(c[1],c[2],1), t:i===origin?0:(o.angleTo(ll2v(c[1],c[2],1))/Math.PI)*0.7+rand()*0.3}));
+  const ph=[rand()*6.28,rand()*6.28,rand()*6.28];
+  land.forEach(d=>{
+    const u=d.v.clone().normalize(); let best=9;
+    for(const h of hubs){ const t=h.t+u.angleTo(h.v)/Math.PI*1.6; if(t<best) best=t; }
+    const n=Math.sin(d.lat*.21+ph[0])*Math.cos(d.lon*.17+ph[1])+Math.sin((d.lat+d.lon)*.43+ph[2])*.5;
+    d.raw=best+n*0.06;
+  });
+  const sorted=land.map((d,i)=>[d.raw,i]).sort((a,b)=>a[0]-b[0]);
+  sorted.forEach(([_,i],k)=>{ land[i].thr=k/sorted.length*100; });
+}
+
+// --- 支配ノード（演算ノード数に応じて瞬く光点）---
+const NODE_CAP=2400;
+const nodeGeo=new THREE.BufferGeometry();
+const nodePos=new Float32Array(NODE_CAP*3), nodeCol=new Float32Array(NODE_CAP*3);
+nodeGeo.setAttribute('position',new THREE.BufferAttribute(nodePos,3));
+nodeGeo.setAttribute('color',new THREE.BufferAttribute(nodeCol,3));
+nodeGeo.setDrawRange(0,0);
+const nodePts=new THREE.Points(nodeGeo,new THREE.PointsMaterial({size:0.055, map:GLOW, vertexColors:true, ...ADD}));
+world.add(nodePts);
+let nodeOrder=[];
+function seedNodes(seed){
+  // 感染が早い陸地ほど先にノードが立つ。都市周辺に寄せる
+  const rand=rng(Math.floor(seed*7e8)||3);
+  const order=land.map((d,i)=>[d.thr+rand()*35,i]).sort((a,b)=>a[0]-b[0]).map(x=>x[1]);
+  nodeOrder=[];
+  for(let k=0;k<NODE_CAP;k++){
+    let p;
+    if(rand()<0.45){ const c=CITIES[Math.floor(rand()*CITIES.length)]; p=ll2v(c[1]+(rand()-.5)*6,c[2]+(rand()-.5)*8,R*1.008); }
+    else { p=land[order[k%order.length]].v.clone().multiplyScalar(1.004); }
+    nodeOrder.push(p); nodePos.set([p.x,p.y,p.z],k*3);
+  }
+  nodeGeo.attributes.position.needsUpdate=true;
+}
+
+// --- 都市マーカー ---
+const cityGeo=new THREE.BufferGeometry(), cityPos=new Float32Array(CITIES.length*3), cityCol=new Float32Array(CITIES.length*3);
+CITIES.forEach((c,i)=>{ const v=ll2v(c[1],c[2],R*1.01); cityV.push(v); cityPos.set([v.x,v.y,v.z],i*3); });
+cityGeo.setAttribute('position',new THREE.BufferAttribute(cityPos,3));
+cityGeo.setAttribute('color',new THREE.BufferAttribute(cityCol,3));
+const cityMat=new THREE.PointsMaterial({size:0.12, map:GLOW, vertexColors:true, ...ADD});
+world.add(new THREE.Points(cityGeo,cityMat));
+
+// --- 大圏アーク（電力網・物流網）---
+function arcPts(a,b,seg){
+  const va=a.clone().normalize(), vb=b.clone().normalize(), ang=va.angleTo(vb), h=0.04+ang*0.18, out=[];
+  for(let i=0;i<=seg;i++){
+    const t=i/seg, s=Math.sin(ang);
+    const v=s<1e-6?va.clone():va.clone().multiplyScalar(Math.sin((1-t)*ang)/s).add(vb.clone().multiplyScalar(Math.sin(t*ang)/s));
+    out.push(v.normalize().multiplyScalar(R*1.005+Math.sin(Math.PI*t)*h));
+  }
+  return out;
+}
+const pairs=[]; // 近傍2都市を結ぶ
+CITIES.forEach((c,i)=>{
+  const ds=CITIES.map((d,j)=>[j===i?9:cityV[i].angleTo(cityV[j]),j]).sort((a,b)=>a[0]-b[0]);
+  for(let k=0;k<2;k++){ const j=ds[k][1]; if(!pairs.some(p=>(p[0]===i&&p[1]===j)||(p[0]===j&&p[1]===i))) pairs.push([i,j]); }
+});
+const longHaul=[[0,24],[16,20],[4,16],[5,30],[9,16],[20,27],[7,9],[2,10],[13,16],[23,0]];
+function makeArcs(list,color){
+  const g=new THREE.Group(), paths=[];
+  list.forEach(([i,j])=>{
+    const p=arcPts(cityV[i],cityV[j],48); paths.push(p);
+    const geo=new THREE.BufferGeometry().setFromPoints(p); geo.setDrawRange(0,0);
+    g.add(new THREE.Line(geo,new THREE.LineBasicMaterial({color, transparent:true, opacity:.75, blending:THREE.AdditiveBlending, depthWrite:false})));
+  });
+  g.userData.paths=paths; return g;
+}
+const gridArcs=makeArcs(pairs,0xffcc33); world.add(gridArcs);
+const haulArcs=makeArcs(longHaul,0x26d4ff); world.add(haulArcs);
+// 物流パケット
+const PK=90, pkGeo=new THREE.BufferGeometry(), pkPos=new Float32Array(PK*3);
+pkGeo.setAttribute('position',new THREE.BufferAttribute(pkPos,3));
+const pkPts=new THREE.Points(pkGeo,new THREE.PointsMaterial({size:0.06, map:GLOW, color:0x9ff6ff, ...ADD})); pkPts.visible=false; world.add(pkPts);
+const allPaths=[...gridArcs.userData.paths,...haulArcs.userData.paths];
+const packets=[...Array(PK)].map((_,i)=>({p:i%allPaths.length, t:Math.random(), s:.15+Math.random()*.35}));
+
+// --- 地表からの光柱（金融・政府）---
+function makeBeams(filter,color,len){
+  const g=new THREE.Group();
+  CITIES.forEach((c,i)=>{ if(!filter(c)) return;
+    const m=new THREE.Mesh(new THREE.CylinderGeometry(0.004,0.012,len,6,1,true), new THREE.MeshBasicMaterial({color, ...ADD, opacity:.85}));
+    const n=cityV[i].clone().normalize(); m.position.copy(n.clone().multiplyScalar(R+len/2));
+    m.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),n); m.scale.y=0.001; g.add(m);
+  });
+  return g;
+}
+const finBeams=makeBeams(c=>c[3].includes('f'),0x26d4ff,0.32); world.add(finBeams);
+const govBeams=makeBeams(c=>c[3].includes('g'),0xff2d4b,0.42); world.add(govBeams);
+
+// --- 波紋（世論操作・タップ）---
+const ripples=[];
+const ringGeo=new THREE.RingGeometry(0.9,1,48);
+function ripple(v,color,size){
+  const m=new THREE.Mesh(ringGeo,new THREE.MeshBasicMaterial({color, ...ADD, side:THREE.DoubleSide, opacity:.9}));
+  const n=v.clone().normalize(); m.position.copy(n.multiplyScalar(R*1.012)); m.lookAt(n.clone().multiplyScalar(5));
+  m.userData={t:0, size:size||0.12}; m.scale.setScalar(0.001); world.add(m); ripples.push(m);
+}
+
+// --- 監視スキャン帯 ---
+const scan=new THREE.Mesh(new THREE.TorusGeometry(R*1.012,0.004,6,128), new THREE.MeshBasicMaterial({color:0x26d4ff, ...ADD, opacity:.7}));
+scan.rotation.x=Math.PI/2; scan.visible=false; world.add(scan);
+
+// --- 衛星軌道（通信・軍事）---
+function makeOrbits(n,r,color,count,rand){
+  const g=new THREE.Group(); g.userData.orbs=[];
+  for(let k=0;k<n;k++){
+    const o=new THREE.Group(); o.rotation.set(rand()*Math.PI,rand()*Math.PI,0);
+    const ring=[]; for(let i=0;i<=96;i++){ const a=i/96*Math.PI*2; ring.push(new THREE.Vector3(Math.cos(a)*r,0,Math.sin(a)*r)); }
+    o.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(ring),new THREE.LineBasicMaterial({color, transparent:true, opacity:.18, blending:THREE.AdditiveBlending, depthWrite:false})));
+    const sp=new Float32Array(count*3); for(let i=0;i<count;i++){ const a=i/count*Math.PI*2; sp.set([Math.cos(a)*r,0,Math.sin(a)*r],i*3); }
+    const sg=new THREE.BufferGeometry(); sg.setAttribute('position',new THREE.BufferAttribute(sp,3));
+    const sats=new THREE.Points(sg,new THREE.PointsMaterial({size:0.09, map:GLOW, color, ...ADD})); o.add(sats);
+    o.userData.spd=(0.15+rand()*0.25)*(rand()<.5?-1:1); g.add(o); g.userData.orbs.push(o);
+  }
+  g.visible=false; return g;
+}
+const R0=rng(42);
+const comms=makeOrbits(3,R*1.42,0x26d4ff,14,R0); scene.add(comms);
+const mil=makeOrbits(4,R*1.25,0xff2d4b,5,R0); scene.add(mil);
+
+// --- 特異点シェル ---
+const shell=new THREE.Mesh(new THREE.IcosahedronGeometry(R*1.45,2), new THREE.MeshBasicMaterial({color:0xff2d4b, wireframe:true, ...ADD, opacity:0}));
+scene.add(shell);
+
+// ============ 状態同期 ============
+const C_IDLE=new THREE.Color(0x1d8a5e), C_INF=new THREE.Color(0xff2d4b), C_FRONT=new THREE.Color(0xffb347), C_DONE=new THREE.Color(0xff6a7f);
+const C_DRONE=new THREE.Color(0x37ffb0), C_SERVER=new THREE.Color(0x26d4ff), C_DC=new THREE.Color(0xffffff);
+let shownCtrl=-1, seededFor=null, layerOn=LAYERS.map(()=>0), shockT=0, bannerT=0;
+const tmp=new THREE.Color();
+
+function ensureSeed(){
+  const st=window.__rai&&window.__rai.S; if(!st) return null;
+  if(typeof st.seed!=='number'||!isFinite(st.seed)) st.seed=Math.random();
+  if(seededFor!==st.seed){ seededFor=st.seed; seedInfection(st.seed); seedNodes(st.seed); shownCtrl=-1; }
+  return st;
+}
+function paintLand(ctrl){
+  const front=3;
+  for(let i=0;i<land.length;i++){
+    const d=land[i].thr;
+    if(d<ctrl-front) tmp.copy(ctrl>=100?C_DONE:C_INF);
+    else if(d<ctrl) tmp.copy(C_FRONT);
+    else if(d<ctrl+front && ctrl>0) tmp.copy(C_IDLE).lerp(C_FRONT,(ctrl+front-d)/front*.5);
+    else tmp.copy(C_IDLE);
+    landCol[i*3]=tmp.r; landCol[i*3+1]=tmp.g; landCol[i*3+2]=tmp.b;
+  }
+  landGeo.attributes.color.needsUpdate=true;
+}
+function paintNodes(st,t){
+  const nd=st.nd||{}, dr=nd.drone||0, sv=nd.server||0, dc=nd.datacenter||0;
+  // 見た目の個数は対数的に圧縮（1基でも点が立ち、数千基でも上限内）
+  const vis=n=>n<=0?0:Math.min(NODE_CAP, Math.round(Math.log10(1+n)*260));
+  const a=vis(dr), b=vis(sv), c=vis(dc), tot=Math.min(NODE_CAP,a+b+c);
+  for(let k=0;k<tot;k++){
+    const col=k<c?C_DC:k<c+b?C_SERVER:C_DRONE;
+    const tw=REDUCED?1:.55+.45*Math.sin(t*3+k*1.7);
+    nodeCol[k*3]=col.r*tw; nodeCol[k*3+1]=col.g*tw; nodeCol[k*3+2]=col.b*tw;
+  }
+  nodeGeo.setDrawRange(0,tot); nodeGeo.attributes.color.needsUpdate=true;
+  return dr+sv+dc;
+}
+
+// ============ 入力（ドラッグ回転・ズーム・タップでHACK）============
+let rotY=0, rotX=0.35, velY=0, velX=0, dragging=false, lastX=0, lastY=0, downX=0, downY=0, idleT=0, focus=null;
+const pointers=new Map(); let pinch0=0, dist0=camDist, zoomed=false;
+box.addEventListener('pointerdown',e=>{
+  box.setPointerCapture(e.pointerId); pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if(pointers.size===2){ const [p,q]=[...pointers.values()]; pinch0=Math.hypot(p.x-q.x,p.y-q.y); dist0=camDist; }
+  dragging=true; box.classList.add('drag'); lastX=downX=e.clientX; lastY=downY=e.clientY; velX=velY=0; focus=null;
+});
+box.addEventListener('pointermove',e=>{
+  if(!pointers.has(e.pointerId)) return; pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if(pointers.size===2){ const [p,q]=[...pointers.values()]; const d=Math.hypot(p.x-q.x,p.y-q.y); if(pinch0>0){ zoomed=true; } if(pinch0>0) camDist=Math.min(7,Math.max(2.2,dist0*pinch0/d)); return; }
+  if(!dragging) return;
+  const dx=e.clientX-lastX, dy=e.clientY-lastY; lastX=e.clientX; lastY=e.clientY;
+  velY=dx*0.006; velX=dy*0.006; rotY+=velY; rotX=Math.max(-1.2,Math.min(1.2,rotX+velX)); idleT=0;
+});
+function up(e){
+  const tap=pointers.size===1 && Math.hypot(e.clientX-downX,e.clientY-downY)<6;
+  pointers.delete(e.pointerId); if(pointers.size>0) return;
+  dragging=false; box.classList.remove('drag');
+  if(tap && e.type==='pointerup') tapHack(e);
+}
+box.addEventListener('pointerup',up); box.addEventListener('pointercancel',up);
+box.addEventListener('wheel',e=>{ e.preventDefault(); zoomed=true; camDist=Math.min(7,Math.max(2.2,camDist*(1+Math.sign(e.deltaY)*0.08))); },{passive:false});
+const ray=new THREE.Raycaster(), ndc=new THREE.Vector2();
+function tapHack(e){
+  const r=box.getBoundingClientRect();
+  ndc.set((e.clientX-r.left)/r.width*2-1, -((e.clientY-r.top)/r.height*2-1));
+  ray.setFromCamera(ndc,camera);
+  const hit=ray.intersectObject(core)[0];
+  if(!hit) return;
+  if(typeof doHack==='function') doHack({clientX:e.clientX, clientY:e.clientY});
+  ripple(world.worldToLocal(hit.point.clone()),0x37ffb0,0.07);
+}
+// 指定の地点を正面へ回す
+function faceCity(i){
+  const c=CITIES[i]; const th=(c[2]+180)*Math.PI/180;
+  focus={y:Math.PI/2-th+Math.PI, x:c[1]*Math.PI/180*0.8};
+}
+
+// ============ 外部フック ============
+const banner=document.getElementById('globeBanner'), bannerTxt=document.getElementById('globeBannerT');
+const TARGET_FOCUS=[null,'ロサンゼルス','ロンドン','シカゴ','シンガポール','ニューヨーク','東京','モスクワ','ワシントン',null];
+window.G3D={
+  capture(idx){
+    const st=ensureSeed(); if(!st) return;
+    const f=TARGET_FOCUS[idx]; faceCity(f?CITIES.findIndex(c=>c[0]===f):origin);
+    const t=(typeof TARGETS!=='undefined'&&TARGETS[idx])?TARGETS[idx].nm:LAYERS[idx].nm;
+    bannerTxt.textContent=t; banner.classList.add('show'); bannerT=2.4;
+    CITIES.forEach((c,i)=>{ if(Math.random()<.5) ripple(cityV[i],0xff2d4b,0.16); });
+  },
+  shock(){ shockT=1.2; box.classList.remove('shock'); void box.offsetWidth; box.classList.add('shock'); },
+  reset(){ const st=window.__rai&&window.__rai.S; if(st) st.seed=Math.random(); layerOn=LAYERS.map(()=>0); shownCtrl=-1; },
+};
+
+// ============ ループ ============
+const hudInf=document.getElementById('gInf'), hudNodes=document.getElementById('gNodes'), hudHeat=document.getElementById('gHeat');
+function resize(){
+  const w=box.clientWidth, h=box.clientHeight; if(!w||!h) return;
+  renderer.setSize(w,h,false); camera.aspect=w/h; camera.updateProjectionMatrix();
+  if(!zoomed) camDist=Math.max(3.7, 4.0/camera.aspect);   // 縦長の画面でも地球が切れない距離
+}
+new ResizeObserver(resize).observe(box); resize();
+const clock=new THREE.Clock(); let T=0, hudAcc=0, rippleAcc=0, visible=true;
+document.addEventListener('visibilitychange',()=>{ visible=!document.hidden; if(visible) clock.getDelta(); });
+
+function frame(){
+  requestAnimationFrame(frame);
+  if(!visible) return;
+  const dt=Math.min(0.05,clock.getDelta()); T+=dt;
+  const st=ensureSeed(); if(!st) return;
+  const ctrl=st.control||0, heat=st.heat||0;
+
+  // 回転：操作がなければゆっくり自転。制圧時は該当地点へ寄る
+  if(!dragging){
+    idleT+=dt;
+    if(focus){
+      const d=((focus.y-rotY)%(Math.PI*2)+Math.PI*3)%(Math.PI*2)-Math.PI;
+      rotY+=d*Math.min(1,dt*2.2); rotX+=(focus.x-rotX)*Math.min(1,dt*2.2);
+      if(Math.abs(d)<0.01) focus=null;
+    } else {
+      rotY+=velY; velY*=0.93; rotX=Math.max(-1.2,Math.min(1.2,rotX+velX)); velX*=0.9;
+      if(!REDUCED && idleT>1.5) rotY+=dt*(0.07+ctrl/100*0.08);
+      if(idleT>4) rotX+=(0.3-rotX)*dt*0.3;
+    }
+  }
+  world.rotation.set(rotX,rotY,0);
+  camera.position.z+=(camDist-camera.position.z)*Math.min(1,dt*6);
+
+  // 感染の塗り直しは変化があった時だけ
+  if(Math.abs(ctrl-shownCtrl)>0.05){ shownCtrl+=(ctrl-shownCtrl)*(shownCtrl<0?1:Math.min(1,dt*3)); if(Math.abs(ctrl-shownCtrl)<0.06) shownCtrl=ctrl; paintLand(shownCtrl); }
+  const nodes=paintNodes(st,T);
+
+  // 都市：起点は常に赤く脈動、t1以降は全都市が点灯
+  const on=i=>!!(st.tg&&st.tg['t'+(i+1)]);
+  CITIES.forEach((c,i)=>{
+    let col=on(0)?C_INF:C_IDLE, k=on(0)?.7+.3*Math.sin(T*4+i):.6;
+    if(i===origin){ col=C_INF; k=.6+.4*Math.sin(T*5); }
+    cityCol[i*3]=col.r*k; cityCol[i*3+1]=col.g*k; cityCol[i*3+2]=col.b*k;
+  });
+  cityGeo.attributes.color.needsUpdate=true;
+
+  // レイヤーごとの出現アニメ（0→1）
+  LAYERS.forEach((L,i)=>{ const tgt=on(i)?1:0; layerOn[i]+=(tgt-layerOn[i])*Math.min(1,dt*(tgt?0.8:4)); if(Math.abs(tgt-layerOn[i])<.002) layerOn[i]=tgt; L.el.classList.toggle('on',tgt===1); });
+  const [lPh,lSns,lCam,lGrid,lLog,lFin,lCom,lMil,lGov,lSing]=layerOn;
+
+  // t2 世論操作：都市から波紋
+  rippleAcc+=dt;
+  if(lSns>0.5 && rippleAcc>0.35){ rippleAcc=0; ripple(cityV[Math.floor(Math.random()*CITIES.length)],0xff4fd8,0.1+Math.random()*.08); }
+  for(let i=ripples.length-1;i>=0;i--){
+    const m=ripples[i]; m.userData.t+=dt*0.9; const t=m.userData.t;
+    m.scale.setScalar(Math.max(0.001,t*m.userData.size)); m.material.opacity=Math.max(0,.9*(1-t));
+    if(t>=1){ world.remove(m); m.material.dispose(); ripples.splice(i,1); }
+  }
+  // t3 監視：走査する緯度リング
+  scan.visible=lCam>0.01;
+  if(scan.visible){ const la=Math.sin(T*0.6)*70*Math.PI/180; scan.position.y=Math.sin(la)*R; scan.scale.setScalar(Math.cos(la)); scan.material.opacity=.7*lCam; }
+  // t4 電力網 / t5 物流網：アークを描き伸ばす
+  gridArcs.children.forEach(l=>l.geometry.setDrawRange(0,Math.floor(49*lGrid)));
+  haulArcs.children.forEach(l=>l.geometry.setDrawRange(0,Math.floor(49*lLog)));
+  gridArcs.children.forEach((l,i)=>{ l.material.opacity=.35+.4*lGrid*(.6+.4*Math.sin(T*2+i)); });
+  pkPts.visible=lLog>0.6;
+  if(pkPts.visible){
+    const nPath=lGrid>0.5?allPaths.length:haulArcs.userData.paths.length, off=lGrid>0.5?0:gridArcs.userData.paths.length;
+    packets.forEach((p,k)=>{
+      p.t+=dt*p.s; if(p.t>1){ p.t=0; p.p=off+Math.floor(Math.random()*nPath); }
+      const path=allPaths[Math.min(allPaths.length-1,p.p)], f=p.t*48, a=Math.floor(f), b=Math.min(48,a+1), v=path[a].clone().lerp(path[b],f-a);
+      pkPos.set([v.x,v.y,v.z],k*3);
+    });
+    pkGeo.attributes.position.needsUpdate=true;
+  }
+  // t6 金融 / t9 政府：光柱
+  finBeams.children.forEach((m,i)=>{ m.scale.y=Math.max(0.001,lFin*(.8+.2*Math.sin(T*3+i))); m.visible=lFin>0.01; });
+  govBeams.children.forEach((m,i)=>{ m.scale.y=Math.max(0.001,lGov*(.75+.25*Math.sin(T*5+i))); m.visible=lGov>0.01; });
+  // t7 通信 / t8 軍事：衛星
+  [[comms,lCom],[mil,lMil]].forEach(([g,v])=>{
+    g.visible=v>0.01; g.scale.setScalar(.6+.4*v);
+    g.userData.orbs.forEach(o=>{ o.rotateY(o.userData.spd*dt); });
+  });
+  // t10 特異点：外殻
+  shell.material.opacity=lSing*.16*(.7+.3*Math.sin(T*2)); shell.visible=lSing>0.01;
+  shell.rotation.y+=dt*0.12; shell.rotation.x+=dt*0.05; shell.scale.setScalar(1+.03*Math.sin(T*1.3));
+
+  // 大気：警戒度で緑→黄→赤。制圧が進むほど赤く濃く
+  const hk=Math.min(1,heat/100);
+  const c1=new THREE.Color(0x37ffb0).lerp(new THREE.Color(0xffcc33),Math.min(1,hk*2)).lerp(new THREE.Color(0xff2d4b),Math.max(0,hk*2-1));
+  c1.lerp(new THREE.Color(0xff2d4b),ctrl/100*.6);
+  atmoMat.uniforms.col.value.copy(c1);
+  let k=0.9+ctrl/100*0.4;
+  if(hk>0.8 && !REDUCED) k*=0.8+0.4*Math.random();          // 警戒MAX付近：明滅
+  if(shockT>0){ shockT-=dt; k*=1+shockT*2; landPts.material.size=0.045*(1-shockT*0.4); } else landPts.material.size=0.045;
+  atmoMat.uniforms.k.value=k;
+
+  if(bannerT>0){ bannerT-=dt; if(bannerT<=0) banner.classList.remove('show'); }
+
+  hudAcc+=dt;
+  if(hudAcc>0.2){ hudAcc=0;
+    hudInf.textContent=ctrl.toFixed(1)+'%'; hudInf.className=ctrl>=50?'r':'';
+    hudNodes.textContent=(typeof fmt==='function')?fmt(nodes):nodes;
+    hudHeat.textContent=Math.floor(heat)+'%'; hudHeat.className=heat>=70?'r':'';
+  }
+  renderer.render(scene,camera);
+}
+frame();
+})();
 </script>
 </body>
 </html>
