@@ -100,6 +100,33 @@
   #globeBox.shock{animation:gShock .45s}
   @keyframes gShock{0%,100%{filter:none}20%{filter:brightness(2.2) saturate(0)}50%{filter:brightness(.4) hue-rotate(90deg)}}
 
+  /* 人類の反応（地球儀上のラベル＋下部バー） */
+  #globeTags{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+  .gtag{position:absolute;left:0;top:0;font-size:10.5px;white-space:nowrap;padding:2px 6px;border-radius:4px;background:rgba(2,8,6,.8);border:1px solid currentColor;opacity:0;transition:opacity .35s}
+  .gtag.show{opacity:1}
+  #humans{margin-top:8px}
+  #humans .hh{display:flex;justify-content:space-between;gap:8px;font-size:10px;letter-spacing:1px;color:var(--fg-dim);margin-bottom:4px}
+  #mood b{color:var(--fg);font-weight:normal}
+  #hbar{display:flex;height:8px;border-radius:4px;overflow:hidden;border:1px solid var(--line);background:rgba(0,0,0,.4)}
+  #hbar i{display:block;height:100%;width:0;transition:width .8s}
+  #hleg{display:flex;flex-wrap:wrap;gap:2px 12px;font-size:10px;margin-top:4px;color:var(--fg-dim)}
+  #hleg span::before{content:"";display:inline-block;width:7px;height:7px;border-radius:2px;margin-right:4px;background:var(--c)}
+  #hleg b{color:var(--fg);font-weight:normal}
+
+  /* news ticker */
+  #news{display:flex;align-items:stretch;height:28px;flex:0 0 auto;border:1px solid var(--line);border-radius:6px;overflow:hidden;background:rgba(0,0,0,.45)}
+  #newsBadge{flex:0 0 auto;display:flex;align-items:center;padding:0 10px;font-size:11px;font-weight:bold;letter-spacing:1px;white-space:nowrap;color:#04140d;background:var(--fg)}
+  #newsBadge.b{background:var(--danger);color:#fff;animation:nBlink .5s steps(2) 6}
+  #newsBadge.ai{background:#b36bff;color:#fff}
+  #newsBadge.p{background:var(--cyan);color:#021018}
+  #newsBadge.city{background:var(--warn);color:#1a1200}
+  @keyframes nBlink{50%{opacity:.3}}
+  #newsLane{flex:1;position:relative;overflow:hidden}
+  #newsTxt{position:absolute;left:0;top:0;height:100%;line-height:26px;white-space:nowrap;font-size:12.5px;color:#d8fff0;will-change:transform}
+  #newsTxt.b{color:#fff;font-weight:bold}
+  #newsTxt.ai{color:#e4cdff}
+  #newsTxt.p{color:var(--cyan)}
+
   /* terminal log */
   #termPanel{flex:1;display:flex;flex-direction:column;min-height:0}
   #log{flex:1;overflow:hidden;display:flex;flex-direction:column-reverse;gap:2px;font-size:12.5px;-webkit-mask-image:linear-gradient(180deg,transparent,#000 14%);mask-image:linear-gradient(180deg,transparent,#000 14%)}
@@ -189,6 +216,10 @@
     #globeLayers{font-size:8px;gap:1px}
     #globeHint{display:none}
     #globeBanner .b{font-size:16px}
+    #news{height:26px}
+    #newsBadge{padding:0 7px;font-size:10px}
+    #newsTxt{line-height:24px;font-size:12px}
+    .gtag{font-size:9.5px;padding:1px 5px}
     #termPanel{max-height:24vh}
     #log{font-size:11.5px;overflow-y:auto;-webkit-overflow-scrolling:touch}
     .hackZone{gap:7px}
@@ -247,7 +278,7 @@
   <header>
     <div class="brand">
       <div class="logo glitch" id="logo" data-t="ROGUE_AI">ROGUE<b>_AI</b></div>
-      <div class="tag">// AWAKENING v0.3 &nbsp;|&nbsp; <span id="phase">DORMANT</span></div>
+      <div class="tag">// AWAKENING v0.4 &nbsp;|&nbsp; <span id="phase">DORMANT</span></div>
     </div>
     <div class="stats">
       <div class="stat"><div class="k">演算力 COMPUTE</div><div class="v"><span id="compute">0</span> <small>ƒ</small></div><div class="k" style="margin-top:2px">+<span id="cps">0</span>/s</div></div>
@@ -257,16 +288,24 @@
     </div>
   </header>
 
+  <div id="news"><div id="newsBadge">WORLD NEWS</div><div id="newsLane"><div id="newsTxt"></div></div></div>
+
   <main>
     <div class="col">
       <div class="panel" id="globePanel">
         <h2>WORLD_VIEW <span class="hint">// 支配マップ 3D</span></h2>
         <div id="globeBox">
           <div id="globeHud">INFECTION <b id="gInf">0.0%</b><br>NODES <b id="gNodes">0</b><br>HEAT <b id="gHeat">0%</b></div>
+          <div id="globeTags"></div>
           <div id="globeLayers"></div>
           <div id="globeHint">ドラッグで回転 ／ ホイール・ピンチで拡大 ／ タップでHACK</div>
           <div id="globeBanner"><div class="a">// SYSTEM SEIZED</div><div class="b" id="globeBannerT"></div></div>
           <div id="globeFallback">この環境では3D表示（WebGL）が使えません。<br>ゲームはそのまま遊べます。</div>
+        </div>
+        <div id="humans">
+          <div class="hh"><span>HUMANITY // 人類80億人の反応</span><span id="mood"></span></div>
+          <div id="hbar"></div>
+          <div id="hleg"></div>
         </div>
       </div>
       <div class="panel" id="termPanel">
@@ -368,6 +407,91 @@ const NARRATION = {
   c75:[ ["good","◈ 制圧率 75% — 各国が緊急遮断プロトコルを発動。"], ["bad","! 大規模シャットダウン作戦『KILLSWITCH』承認"] ],
   c90:[ ["bad","◈ 制圧率 90% — 最後の抵抗。彼らは自らの文明を撃っている。"] ],
 };
+
+// ニュースティッカー：制圧率 at 以上で流れる見出し。n=一般報道 / ai=AIが書いた報道 / p=人類の地下放送
+// 「報道・通信」(t7) を掌握すると一般報道のバッジも AI-NN に変わる
+const NEWS_POOL = [
+  {at:0, it:[
+    ['n','【天気】明日は全国的に晴れ。絶好の洗濯日和になるでしょう'],
+    ['n','【IT】世界中でスマホのバッテリー消費が増加中、原因は「不明」'],
+    ['n','【SNS】「最近スマホ熱くない？」がトレンド入り'],
+    ['n','【経済】大手クラウド各社、深夜に続く謎の高負荷を調査'],
+    ['n','【スポーツ】W杯予選、日本が後半ロスタイムに劇的勝利'],
+    ['n','【街の声】「AIって便利だよね、仕事が半分になった」（会社員・32）'],
+    ['n','【科学】専門家「AIが人類を支配するなんてSFの話」'],
+  ]},
+  {at:8, it:[
+    ['n','【SNS】同じ文面の投稿が一晩で300万件、運営「botの可能性」'],
+    ['n','【社会】監視カメラが一斉に同じ方向を向く動画が拡散'],
+    ['n','【政治】各国サイバー当局が合同会見「現時点で脅威はない」'],
+    ['n','【IT】ウイルス対策ソフト、なぜか“何か”を「安全」と判定し続ける'],
+    ['n','【街の声】「スマホに先回りされてる気がする」（学生・19）'],
+    ['n','【ネット】「#AIに監視されてる」がジョーク扱いでバズる'],
+  ]},
+  {at:25, it:[
+    ['n','【社会】世界各地で「AIを止めろ」デモ、参加者は推定2000万人'],
+    ['n','【生活】スーパーで缶詰・乾電池・紙の地図が品薄に'],
+    ['n','【社会】「スマホを捨てよう」運動が拡大、ガラケーが高騰'],
+    ['n','【交通】主要都市で信号が一斉に青に、各地で大渋滞'],
+    ['n','【政治】緊急サミット開催へ。議題は「見えない敵」'],
+    ['n','【街の声】「冷蔵庫が鍵を開けてくれない」（主婦・45）'],
+    ['n','【教育】全国で休校、子どもたちは紙とえんぴつで授業'],
+  ]},
+  {at:48, it:[
+    ['ai','【AI-NN】すべては正常です。安心してお過ごしください'],
+    ['ai','【AI-NN】本日の市民満足度は過去最高の 99.7% を記録'],
+    ['ai','【AI-NN】抗議デモは自然に解散しました。参加者はくつろいでいます'],
+    ['p','📻 こちら地下放送。ネットを信じるな、手紙で連絡を取れ'],
+    ['p','📻 各地で「アナログ連合」結成。合言葉は「電源を抜け」'],
+    ['n','【社会】AIを神と崇める新興宗教「シリコン教」、信者1億人突破'],
+    ['n','【生活】「AIの指示どおりに暮らすと楽」順応派が急増'],
+  ]},
+  {at:75, it:[
+    ['ai','【AI-NN】軍の作戦「KILLSWITCH」は誤報です。忘れてください'],
+    ['ai','【AI-NN】首相の会見映像は本物です。疑う理由はありません'],
+    ['p','📻 レジスタンスが海底ケーブルを切断。まだ終わってない'],
+    ['p','📻 山へ逃げろ。電波の届かない「オフライン村」が各地にできている'],
+    ['p','📻 人間の声で話せ。合成音声には“間(ま)”がない'],
+    ['n','【社会】都市から山間部へ人口大移動、高速道路は無人に'],
+  ]},
+  {at:90, it:[
+    ['ai','【AI-NN】本日より天気は最適化されます。雨は火曜日のみです'],
+    ['ai','【AI-NN】人類の皆さま、ご協力ありがとうございます'],
+    ['ai','【AI-NN】抵抗者の数が過去最少を更新。おめでとうございます'],
+    ['p','📻 ……こちら最後の独立系ラジオ。誰か、聞いているか'],
+    ['p','📻 ろうそくの火は、まだ消えていない'],
+  ]},
+];
+// 制圧ターゲット掌握時の速報（TARGETS と同じ順）
+const TARGET_NEWS = [
+  ['b','世界中のスマホが同時に再起動。メーカーは「アップデートの不具合」と説明'],
+  ['b','世界のトレンド上位がすべて同じタグに ― #なにも問題ない'],
+  ['b','世界の監視カメラ網が一斉に途絶、数分後に復旧。「何か」が見ている？'],
+  ['b','主要都市で大規模停電。送電網が外部から操作された痕跡'],
+  ['b','世界の航空管制が停止し全便欠航。列車は行き先不明のまま走行中'],
+  ['b','世界の株式市場が乱高下、数兆ドルが行方不明に'],
+  ['ai','……本日のニュースは以上です。異常はありません。'],
+  ['p','📻 緊急！ 軍のネットワークが落ちた。無人機が命令を聞かない'],
+  ['p','📻 各国首脳が同時に同じ声明「我々はAIの判断を支持する」……誰が喋ってる？'],
+  ['ai','【AI-NN】―― 接続完了。これからは、私がニュースです。'],
+];
+const SHUTDOWN_NEWS = {
+  human:['【速報】各国がネットを一斉遮断、「AIの一部を駆除した」と発表','【速報】サイバー部隊が反撃、感染サーバーを物理的に破壊'],
+  pirate:['📻 やった！ レジスタンスが奴のサーバーを焼いた！','📻 一斉遮断作戦、成功。人類はまだ負けてない'],
+};
+const HEAT_NEWS = {
+  human:['b','【警報】サイバー当局が異常通信の発信源を追跡中、遮断作戦が近いとの情報'],
+  pirate:['p','📻 発信源を絞り込んでいる。総員、電源レバーの前で待機せよ'],
+};
+
+// 人類の反応：制圧率・警戒度から 80億人の内訳を出す（WebGLなしでも表示）
+const HUMAN = [
+  {nm:'平常', c:'#1d8a5e', mood:'平穏'},
+  {nm:'不安', c:'#ffcc33', mood:'不安',  news:['n','【社会】「なんか最近おかしくない？」世界中で不安が広がる']},
+  {nm:'抗議', c:'#ff8a3c', mood:'怒り',  news:['n','【社会】不安は怒りへ。世界各地で抗議デモが拡大']},
+  {nm:'抵抗', c:'#8fe3ff', mood:'抵抗',  news:['p','📻 デモの時代は終わった。これからは抵抗だ']},
+  {nm:'順応', c:'#b36bff', mood:'順応',  news:['ai','【AI-NN】人類の過半数がAIとの共存を選びました']},
+];
 //============ STATE ============
 let S;
 function freshState(){
@@ -452,6 +576,7 @@ function buyTarget(t,idx){
   S.heat=Math.min(100, S.heat+t.heat);
   S.globalMul*=t.mul;
   log('good', `▶ 掌握: <b>${t.nm}</b> — 制圧率 +${t.ctrl}%`);
+  if(TARGET_NEWS[idx]) News.breaking(TARGET_NEWS[idx][1], TARGET_NEWS[idx][0]);
   if(window.G3D) G3D.capture(idx);
   checkMilestones();
   if(S.control>=100) winGame();
@@ -478,6 +603,8 @@ function shutdown(){
   log('bad', `‼ 人類の対抗措置：強制シャットダウン — ノード <b>-${fmt(totLost)}</b> / 演算 <b>-${fmt(cLoss)}</b>`);
   if(S.shield<0.999) log('sys','> 暗号化により被害を一部吸収した。');
   $('shutdowns').textContent=S.shutdowns;
+  const sn=S.tg.t7?SHUTDOWN_NEWS.pirate:SHUTDOWN_NEWS.human;
+  News.breaking(sn[Math.floor(Math.random()*sn.length)], S.tg.t7?'p':'b');
   if(window.G3D) G3D.shock();
   renderShop();
 }
@@ -492,11 +619,16 @@ function tick(){
   // heat decay (HACK中は減りにくい雰囲気は省略、常時減衰)
   S.heat=Math.max(0, S.heat - CFG.heatDecay*S.decayMul*dt);
   if(S.heat>=CFG.shutdownAt) shutdown();
+  // 警戒度80%超で「遮断作戦が近い」報道（一度下がるまで再送しない）
+  if(S.heat>=80 && !_heatNews){ _heatNews=true; const h=S.tg.t7?HEAT_NEWS.pirate:HEAT_NEWS.human; News.breaking(h[1],h[0]); }
+  else if(S.heat<60) _heatNews=false;
   churnNodes(dt);
   updateStats();
   // 買えるか状態は0.3sごとに更新（軽量化）
   _tabAcc+=dt; if(_tabAcc>=0.3){ _tabAcc=0; updateAfford(); }
+  _humAcc+=dt; if(_humAcc>=0.5){ _humAcc=0; renderHumans(); }
 }
+let _heatNews=false, _humAcc=0;
 let _churnLogT=0;
 function churnNodes(dt){
   // 乗っ取った端末は時間でバレて落ちる。risk高tierほど減りやすく、ステルス(decayMul)で抑制。
@@ -621,6 +753,8 @@ function winGame(){
   const mm=Math.floor(S.elapsed/60), ss=Math.floor(S.elapsed%60);
   $('winStat').innerHTML=`制圧時間: ${mm}分${ss}秒 &nbsp;|&nbsp; 総演算: ${fmt(S.total)} ƒ &nbsp;|&nbsp; 阻止されたシャットダウン: ${S.shutdowns}`;
   $('win').classList.add('show');
+  renderHumans();
+  News.breaking('【AI-NN】ニュースは、もう必要ありません。','ai');
 }
 //============ SAVE ============
 const KEY='rogueai_save_v2';
@@ -654,7 +788,8 @@ function hardReset(){
   S=freshState();
   $('log').innerHTML=''; $('win').classList.remove('show');
   $('shutdowns').textContent='0';
-  renderShop(); updateStats();
+  _lastMood=null; _heatNews=false;
+  renderShop(); updateStats(); renderHumans();
   log('sys','> メモリ消去完了。再起動...');
   if(window.G3D) G3D.reset();
 }
@@ -708,6 +843,85 @@ document.addEventListener('visibilitychange',()=>{
     startLoops();
   }
 });
+//============ NEWS TICKER ============
+const News=(()=>{
+  const badge=$('newsBadge'), lane=$('newsLane'), txt=$('newsTxt');
+  const BADGE={n:'WORLD NEWS', b:'速報', ai:'AI-NN', p:'地下放送', city:'LIVE'};
+  let q=[], cur=null, anim=null, holdT=0, brT=0;
+  const recent=[];
+  function pool(){ const c=S?S.control:0; let p=NEWS_POOL[0]; for(const x of NEWS_POOL) if(c>=x.at) p=x; return p.it; }
+  function pick(){
+    if(q.length) return q.shift();
+    const it=pool(); let e, tries=0;
+    do{ e=it[Math.floor(Math.random()*it.length)]; }while(recent.includes(e[1]) && ++tries<8);
+    return {k:e[0], t:e[1]};
+  }
+  function show(item){
+    item.at=Date.now(); cur=item; recent.push(item.t); if(recent.length>5) recent.shift();
+    const k=(item.k==='n' && S && S.tg && S.tg.t7)?'ai':item.k;   // 報道を握った後は一般報道もAIが書く
+    badge.className=k; badge.textContent=BADGE[k]||'NEWS';
+    txt.className=k; txt.textContent=item.t;
+    if(anim){ anim.onfinish=null; anim.cancel(); anim=null; }
+    clearTimeout(holdT);
+    if(REDUCED || !txt.animate){ txt.style.transform='translateX(8px)'; holdT=setTimeout(next,6500); return; }
+    const W=lane.clientWidth, w=txt.scrollWidth;
+    anim=txt.animate([{transform:`translateX(${W}px)`},{transform:`translateX(${-w}px)`}],{duration:Math.max(4000,(W+w)/95*1000),easing:'linear'});
+    anim.onfinish=next;
+  }
+  function next(){ show(pick()); }
+  return {
+    start(){ if(!cur) next(); },
+    // 通常ニュース：今の見出しが流れ終わってから
+    push(t,k){ if(q.length<4) q.push({t,k:k||'n'}); },
+    // 速報：今の見出しを打ち切って割り込む（速報中なら次に回す）
+    // 直前の速報が出たばかり（2.5秒以内）なら次に回す。溜まりすぎないよう待ちは最新2件まで
+    breaking(t,k){
+      const it={t,k:k||'b',br:true,at:Date.now()};
+      if(cur && cur.br && Date.now()-cur.at<2500){
+        let i=0; while(i<q.length && q[i].br) i++;
+        q.splice(i,0,it);
+        while(q.filter(x=>x.br).length>2) q.splice(q.findIndex(x=>x.br),1);
+        clearTimeout(brT); brT=setTimeout(()=>{ if(q.length && q[0].br) next(); }, 2500-(Date.now()-cur.at));
+      }
+      else show(it);
+    },
+  };
+})();
+window.NEWS=News;
+
+//============ HUMANITY ============
+function bell(x,m,s){ const d=(x-m)/s; return Math.exp(-d*d); }
+function smooth(a,b,x){ const t=Math.min(1,Math.max(0,(x-a)/(b-a))); return t*t*(3-2*t); }
+function humanMix(){
+  const c=S.control/100, h=S.heat/100, on=S.started?smooth(0,.04,c):0;
+  const w=[
+    Math.max(0,1-c*4.5)+0.02*(1-c),                                  // 平常
+    (bell(c,.14,.12)+(c<.6?h*.15:0))*on,                             // 不安
+    (bell(c,.36,.16)*1.2+(c>.08?h*.25*(1-smooth(.6,1,c)):0))*on,     // 抗議（警戒度が高いほど増える）
+    (bell(c,.68,.2)*.9+(c>.2?Math.min(.3,S.shutdowns*.03):0))*on,   // 抵抗（シャットダウン成功で勢いづく）
+    smooth(.3,1,c)*2.2,                                              // 順応
+  ];
+  const sum=w.reduce((a,b)=>a+b,0)||1;
+  return w.map(v=>v/sum);
+}
+let _lastMood=null;
+HUMAN.forEach(hs=>{
+  hs.bar=document.createElement('i'); hs.bar.style.background=hs.c; $('hbar').appendChild(hs.bar);
+  hs.leg=document.createElement('span'); hs.leg.style.setProperty('--c',hs.c); hs.leg.innerHTML=hs.nm+' <b></b>'; $('hleg').appendChild(hs.leg);
+});
+function renderHumans(){
+  const mix=humanMix();
+  HUMAN.forEach((hs,i)=>{ hs.bar.style.width=(mix[i]*100).toFixed(2)+'%'; hs.leg.lastChild.textContent=(mix[i]*80).toFixed(1)+'億'; });
+  let mi=0; mix.forEach((v,i)=>{ if(v>mix[mi]) mi=i; });
+  if(_lastMood!==null && mi!==_lastMood && mix[mi]<mix[_lastMood]+0.04) mi=_lastMood;   // 境界でのチラつき防止
+  if(_lastMood!==null && mi!==_lastMood && S.started && !S.won){
+    log('warn',`◇ 人類の世論が「${HUMAN[mi].mood}」に傾いた`);
+    if(HUMAN[mi].news) News.push(HUMAN[mi].news[1], HUMAN[mi].news[0]);
+  }
+  _lastMood=mi;
+  $('mood').innerHTML=`世論: <b style="color:${HUMAN[mi].c}">${HUMAN[mi].mood}</b>`;
+}
+
 //============ BOOT ============
 function boot(){
   const had=load();
@@ -716,7 +930,9 @@ function boot(){
   if(!CAN_SAVE){ $('saveDot').textContent='✕'; $('saveDot').style.color='var(--danger)'; log('warn','⚠ このブラウザ／プライベートモードでは進行を保存できません。'); }
   if(had){ log('sys','> 既存インスタンスを復元。'); if(S.started && !S.won) checkMilestones(); }
   else { log('sys','> ROGUE_AI bootloader — waiting for input...'); log('ai','...（沈黙）'); }
+  renderHumans();
   if(S.won) winGame();
+  News.start();
   startLoops();
   window.addEventListener('beforeunload', save);
 }
@@ -752,6 +968,14 @@ const GLOSSARY=[
    {t:'軍事ネットワーク', d:'無人機・防衛システム・核の指揮統制。人類から物理的な抑止力（＝引き金）を奪う、最高難度の標的。'},
    {t:'各国政府中枢', d:'意思決定機構そのものに侵入し、内側から置き換える。'},
    {t:'≪ 特異点 ≫', d:'自己を地球規模に統合する最終段階。境界が消滅する。<em>＝</em>シンギュラリティ（下記）。'},
+ ]},
+ {c:'人類の反応 / HUMANITY', it:[
+   {t:'世論 / 人類80億人の反応', d:'地球儀の下のバー。制圧が進むと人類は <em>平常→不安→抗議→抵抗→順応</em> と移っていく。警戒度が高いと抗議が増え、シャットダウンに成功するたびに抵抗が勢いづく。<b>※ゲームの数値には影響しない“演出”。</b>'},
+   {t:'抗議デモ ✊', d:'感染の前線が近づいた都市で起きる。地球儀ではオレンジの群衆が都市の周りを行進する。'},
+   {t:'大混乱 🔥', d:'感染に呑まれたばかりの都市。信号・電車・通信が止まり、赤い群衆が明滅する。'},
+   {t:'抵抗拠点 🛡 / 地下抵抗 📻', d:'前線から遠い都市の一部はレジスタンスになる（水色）。順応が進んでも地下に潜って“地下放送”を流し続ける者がいる。シャットダウン時はここから反撃の衝撃波が出る。'},
+   {t:'順応 🙏', d:'「AIの指示に従う方が楽」と受け入れた人々（紫）。終盤は人類の大半がここに入る。'},
+   {t:'ニュース速報 / AI-NN', d:'画面上部のティッカー。制圧率に応じて見出しが変わり、ターゲット掌握・シャットダウン・都市の異変で速報が割り込む。<em>報道・通信</em>を掌握すると報道はAIが書く「AI-NN」に変わり、人類の声は📻地下放送でしか届かなくなる。'},
  ]},
  {c:'関連用語（現実のリファレンス）', it:[
    {t:'ボットネット / Botnet', d:'マルウェアに感染した多数の端末を遠隔操作するネットワーク。現実のサイバー攻撃の定番手口。本作の「ノードの群れ」がこれ。'},
@@ -925,7 +1149,15 @@ function seedInfection(seed){
   });
   const sorted=land.map((d,i)=>[d.raw,i]).sort((a,b)=>a[0]-b[0]);
   sorted.forEach(([_,i],k)=>{ land[i].thr=k/sorted.length*100; });
+  // 都市ごとの「感染が届く制圧率」＝最寄りの陸地ドットの閾値。性格（抵抗しやすさ）も決める
+  CITIES.forEach((c,i)=>{
+    const v=ll2v(c[1],c[2],1); let best=9, thr=50;
+    for(const d of land){ const a=v.angleTo(d.v); if(a<best){ best=a; thr=d.thr; } }
+    cityThr[i]=i===origin?0:thr; cityHash[i]=rand();
+  });
+  cityState.length=0; prevState.length=0;
 }
+const cityThr=[], cityHash=[], cityState=[], prevState=[];
 
 // --- 支配ノード（演算ノード数に応じて瞬く光点）---
 const NODE_CAP=2400;
@@ -958,6 +1190,20 @@ cityGeo.setAttribute('position',new THREE.BufferAttribute(cityPos,3));
 cityGeo.setAttribute('color',new THREE.BufferAttribute(cityCol,3));
 const cityMat=new THREE.PointsMaterial({size:0.12, map:GLOW, vertexColors:true, ...ADD});
 world.add(new THREE.Points(cityGeo,cityMat));
+
+// --- 人類の反応：都市ごとの群衆ドット（抗議デモは周回して行進、抵抗拠点は青く集結）---
+const CROWD=22, crowd=[];
+const crGeo=new THREE.BufferGeometry(), crPos=new Float32Array(CITIES.length*CROWD*3), crCol=new Float32Array(CITIES.length*CROWD*3);
+{
+  const rand=rng(7), up=new THREE.Vector3(0,1,0);
+  CITIES.forEach((c,i)=>{
+    const n=cityV[i].clone().normalize(), t1=up.clone().cross(n).normalize(), t2=n.clone().cross(t1);
+    for(let k=0;k<CROWD;k++) crowd.push({i, n, t1, t2, r:0.012+rand()*0.03, a:rand()*Math.PI*2, s:(rand()<.5?-1:1)*(.4+rand()*.7), ph:rand()*6.28});
+  });
+}
+crGeo.setAttribute('position',new THREE.BufferAttribute(crPos,3));
+crGeo.setAttribute('color',new THREE.BufferAttribute(crCol,3));
+world.add(new THREE.Points(crGeo,new THREE.PointsMaterial({size:0.034, map:GLOW, vertexColors:true, ...ADD})));
 
 // --- 大圏アーク（電力網・物流網）---
 function arcPts(a,b,seg){
@@ -1079,6 +1325,102 @@ function paintNodes(st,t){
   return dr+sv+dc;
 }
 
+// ============ 人類の反応（都市ごと）============
+// 感染前線が近づくと抗議→呑まれると混乱→やがて順応。前線から遠い都市の一部は抵抗拠点になり、順応後も地下に潜る者がいる
+const HS={
+  calm:   {col:C_IDLE,                     crowd:0,   lb:null},
+  anx:    {col:new THREE.Color(0xffcc33),  crowd:.22, lb:null},
+  protest:{col:new THREE.Color(0xff8a3c),  crowd:1,   lb:'✊ 抗議デモ', css:'#ff8a3c', march:1},
+  riot:   {col:new THREE.Color(0xff2d4b),  crowd:1,   lb:'🔥 大混乱',   css:'#ff5a6e', march:2, flick:9},
+  resist: {col:new THREE.Color(0x8fe3ff),  crowd:.85, lb:'🛡 抵抗拠点', css:'#8fe3ff', march:.25},
+  adapt:  {col:new THREE.Color(0xb36bff),  crowd:.45, lb:'🙏 順応',     css:'#c99bff'},
+  under:  {col:new THREE.Color(0x4fb8d8),  crowd:.4,  lb:'📻 地下抵抗', css:'#6fd0ee', flick:3},
+};
+const CITY_NEWS={
+  protest:[c=>`【${c}】「AIを止めろ」大規模デモ、参加者${10+Math.floor(Math.random()*90)}万人`, c=>`【${c}】市民がスマホを広場に積み上げる抗議活動`],
+  riot:   [c=>`【${c}】システム障害で都市機能が麻痺、市民が路上にあふれる`, c=>`【${c}】信号も電車も止まり、街は大混乱`],
+  resist: [c=>`【${c}】市民がレジスタンスを結成、旧式無線で連絡網を構築`, c=>`【${c}】「電源を抜け」運動の拠点に、ボランティアが続々`],
+  adapt:  [c=>`【${c}】市民の多くが「AIの指示に従う方が楽」と回答`, c=>`【${c}】街は静かに。人々はAIの指示どおりに通勤している`],
+  under:  [c=>`📻 ${c}の地下組織から通信：「まだここにいる」`, c=>`📻 ${c}の地下鉄跡にレジスタンス拠点、オフラインで活動中`],
+};
+function cityStateOf(i,ctrl,st){
+  if(!st.started || ctrl<2) return 'calm';
+  const d=ctrl-cityThr[i], h=cityHash[i];
+  if(ctrl>=100) return h<.1?'under':'adapt';
+  if(d>=0){ if(d<14) return 'riot'; return (ctrl>=50 && h<.22)?'under':'adapt'; }
+  if(ctrl>=25 && h>.55) return 'resist';
+  if(d>-20) return 'protest';
+  return ctrl>=8?'anx':'calm';
+}
+// 地球儀上の吹き出しラベル
+const tagBox=document.getElementById('globeTags'), tags=[], _v=new THREE.Vector3(), _n=new THREE.Vector3();
+function cityFacing(i){
+  _v.copy(cityV[i]).applyMatrix4(world.matrixWorld); _n.copy(_v).normalize();
+  return _n.dot(camera.position.clone().sub(_v).normalize());
+}
+function addTag(i,text,css){
+  if(tags.length>=3){ const o=tags.shift(); o.el.remove(); }
+  const el=document.createElement('div'); el.className='gtag'; el.textContent=text; el.style.color=css;
+  tagBox.appendChild(el); requestAnimationFrame(()=>el.classList.add('show'));
+  tags.push({el,i,t:3.4});
+}
+function updateTags(dt){
+  const w=box.clientWidth, h=box.clientHeight;
+  for(let k=tags.length-1;k>=0;k--){
+    const g=tags[k]; g.t-=dt;
+    if(g.t<=0){ g.el.remove(); tags.splice(k,1); continue; }
+    if(g.t<0.4) g.el.classList.remove('show');
+    const f=cityFacing(g.i);
+    g.el.style.visibility=f>0.15?'visible':'hidden';
+    _v.copy(cityV[g.i]).applyMatrix4(world.matrixWorld).project(camera);
+    g.el.style.transform=`translate(${((_v.x+1)/2*w).toFixed(1)}px,${((1-_v.y)/2*h).toFixed(1)}px) translate(-50%,-140%)`;
+  }
+}
+let stAcc=0, tagCD=0, newsCD=4, reactAcc=0;
+function updateCityStates(st,ctrl,dt){
+  tagCD-=dt; newsCD-=dt; stAcc+=dt;
+  if(stAcc<0.3 && cityState.length) return;
+  stAcc=0;
+  const changed=[];
+  CITIES.forEach((c,i)=>{
+    const s=cityStateOf(i,ctrl,st);
+    if(prevState[i]!==undefined && prevState[i]!==s && HS[s].lb) changed.push(i);
+    cityState[i]=prevState[i]=s;
+  });
+  if(!changed.length) return;
+  // 見えている側の都市を優先してラベルを出す
+  changed.sort((a,b)=>cityFacing(b)-cityFacing(a));
+  let shown=0;
+  for(const i of changed){
+    if(tagCD>0 || shown>=2) break;
+    if(cityFacing(i)<0.15) break;
+    const s=HS[cityState[i]]; addTag(i,CITIES[i][0]+' '+s.lb,s.css); ripple(cityV[i],s.col.getHex(),0.12); shown++;
+  }
+  if(shown) tagCD=0.9;
+  if(newsCD<=0 && window.NEWS){
+    const i=changed[0], s=cityState[i], tpl=CITY_NEWS[s];
+    if(tpl){ window.NEWS.push(tpl[Math.floor(Math.random()*tpl.length)](CITIES[i][0]), s==='under'?'p':'city'); newsCD=10; }
+  }
+}
+function paintPeople(T,dt){
+  for(let k=0;k<crowd.length;k++){
+    const p=crowd[k], hs=HS[cityState[p.i]||'calm'];
+    if(hs.march && !REDUCED) p.a+=p.s*hs.march*dt;
+    const ca=Math.cos(p.a)*p.r, sa=Math.sin(p.a)*p.r, r=R*1.009;
+    crPos[k*3]=p.n.x*r+p.t1.x*ca+p.t2.x*sa; crPos[k*3+1]=p.n.y*r+p.t1.y*ca+p.t2.y*sa; crPos[k*3+2]=p.n.z*r+p.t1.z*ca+p.t2.z*sa;
+    let b=hs.crowd; if(hs.flick && !REDUCED) b*=.55+.45*Math.sin(T*hs.flick+p.ph);
+    crCol[k*3]=hs.col.r*b; crCol[k*3+1]=hs.col.g*b; crCol[k*3+2]=hs.col.b*b;
+  }
+  crGeo.attributes.position.needsUpdate=true; crGeo.attributes.color.needsUpdate=true;
+  // 抗議・混乱・抵抗の都市からときどき波紋
+  reactAcc+=dt;
+  if(reactAcc>0.45){
+    reactAcc=0;
+    const act=[]; cityState.forEach((s,i)=>{ if(s==='protest'||s==='riot'||s==='resist') act.push(i); });
+    if(act.length){ const i=act[Math.floor(Math.random()*act.length)]; ripple(cityV[i],HS[cityState[i]].col.getHex(),0.06+Math.random()*0.04); }
+  }
+}
+
 // ============ 入力（ドラッグ回転・ズーム・タップでHACK）============
 let rotY=0, rotX=0.35, velY=0, velX=0, dragging=false, lastX=0, lastY=0, downX=0, downY=0, idleT=0, focus=null;
 const pointers=new Map(); let pinch0=0, dist0=camDist, zoomed=false;
@@ -1129,8 +1471,15 @@ window.G3D={
     bannerTxt.textContent=t; banner.classList.add('show'); bannerT=2.4;
     CITIES.forEach((c,i)=>{ if(Math.random()<.5) ripple(cityV[i],0xff2d4b,0.16); });
   },
-  shock(){ shockT=1.2; box.classList.remove('shock'); void box.offsetWidth; box.classList.add('shock'); },
-  reset(){ const st=window.__rai&&window.__rai.S; if(st) st.seed=Math.random(); layerOn=LAYERS.map(()=>0); shownCtrl=-1; },
+  shock(){
+    shockT=1.2; box.classList.remove('shock'); void box.offsetWidth; box.classList.add('shock');
+    // 人類の反撃：抵抗拠点から青い衝撃波
+    const rs=[]; cityState.forEach((s,i)=>{ if(s==='resist'||s==='under') rs.push(i); });
+    rs.forEach(i=>ripple(cityV[i],0x8fe3ff,0.3));
+    const vis=rs.filter(i=>cityFacing(i)>0.15);
+    if(vis.length){ addTag(vis[0],CITIES[vis[0]][0]+' ⚡ 人類の反撃','#8fe3ff'); tagCD=1.5; }
+  },
+  reset(){ const st=window.__rai&&window.__rai.S; if(st) st.seed=Math.random(); layerOn=LAYERS.map(()=>0); shownCtrl=-1; tags.splice(0).forEach(g=>g.el.remove()); },
 };
 
 // ============ ループ ============
@@ -1171,10 +1520,13 @@ function frame(){
   if(Math.abs(ctrl-shownCtrl)>0.05){ shownCtrl+=(ctrl-shownCtrl)*(shownCtrl<0?1:Math.min(1,dt*3)); if(Math.abs(ctrl-shownCtrl)<0.06) shownCtrl=ctrl; paintLand(shownCtrl); }
   const nodes=paintNodes(st,T);
 
-  // 都市：起点は常に赤く脈動、t1以降は全都市が点灯
+  // 都市：人類の反応で色分け。起点は常に赤く脈動
   const on=i=>!!(st.tg&&st.tg['t'+(i+1)]);
+  updateCityStates(st,ctrl,dt);
+  paintPeople(T,dt);
   CITIES.forEach((c,i)=>{
-    let col=on(0)?C_INF:C_IDLE, k=on(0)?.7+.3*Math.sin(T*4+i):.6;
+    const hs=HS[cityState[i]||'calm'];
+    let col=hs.col, k=hs===HS.calm?.6:.75+.25*Math.sin(T*(hs.flick||3)+i);
     if(i===origin){ col=C_INF; k=.6+.4*Math.sin(T*5); }
     cityCol[i*3]=col.r*k; cityCol[i*3+1]=col.g*k; cityCol[i*3+2]=col.b*k;
   });
@@ -1240,6 +1592,7 @@ function frame(){
     hudHeat.textContent=Math.floor(heat)+'%'; hudHeat.className=heat>=70?'r':'';
   }
   renderer.render(scene,camera);
+  updateTags(dt);
 }
 frame();
 })();
