@@ -10,7 +10,7 @@
     --corrupt:0;
     --bg:#040806;
     --fg:#37ffb0;
-    --fg-dim:#1c7a57;
+    --fg-dim:#2a9a6f;
     --cyan:#26d4ff;
     --danger:#ff2d4b;
     --warn:#ffcc33;
@@ -195,7 +195,53 @@
   .float{position:absolute;pointer-events:none;font-size:13px;font-weight:bold;color:var(--fg);z-index:40;animation:floatUp .8s forwards;text-shadow:0 0 8px rgba(55,255,176,.7)}
   @keyframes floatUp{from{opacity:1;transform:translateY(0)}to{opacity:0;transform:translateY(-38px)}}
 
-  @media(max-width:880px){main{grid-template-columns:1fr;grid-auto-rows:max-content;overflow-y:auto} #globePanel{flex:0 0 auto} #globeBox{height:min(56vh,520px);flex:0 0 auto}}
+  /* PC：1000px以上は「ログ＋HACK｜地球儀｜ショップ」の3列で地球儀を主役に（それ未満はスマホと同じ縦並び＋スクロール） */
+  @media(min-width:1000px){
+    main{grid-template-columns:minmax(230px,22%) 1fr minmax(290px,26%);grid-template-rows:1fr auto;grid-template-areas:"log globe shop" "hack globe shop"}
+    main>.col:first-child{display:contents}
+    main>.col:last-child{grid-area:shop}
+    #globePanel{grid-area:globe;min-height:0}
+    #termPanel{grid-area:log;min-height:0}
+    .hackZone{grid-area:hack}
+    #hack{padding:18px 10px;font-size:18px;letter-spacing:3px}
+  }
+  /* 大きい画面では文字も大きく */
+  @media(min-width:1200px){ main{grid-template-columns:minmax(270px,22%) 1fr minmax(330px,25%)} }
+  @media(min-width:1600px){
+    body{font-size:15px}
+    .tag,.stat .k,.panel h2,.tab{font-size:12px}
+    .panel h2 .hint{font-size:11px}
+    .stat .v{font-size:23px}
+    .bar{width:180px}
+    #news{height:34px}
+    #newsBadge{font-size:13px;padding:0 14px}
+    #newsTxt{font-size:15px;line-height:32px}
+    #log{font-size:14px}
+    .item .nm{font-size:15px}
+    .item .ds{font-size:12.5px}
+    .item .meta,.item .lv{font-size:11.5px}
+    .item .cost{font-size:13.5px}
+    #globeHud,#globeHint,#globeLayers{font-size:12px}
+    .gtag{font-size:13px;padding:3px 8px}
+    #humans .hh,#hleg{font-size:12px}
+    #hbar{height:11px}
+    footer{font-size:12px}
+    #hack{font-size:22px}
+    #hack span,.subline{font-size:12.5px}
+  }
+  @media(min-width:2200px){
+    body{font-size:17px}
+    .stat .v{font-size:27px}
+    #newsTxt{font-size:17px}
+    #log{font-size:16px}
+    .item .nm{font-size:17px}
+    .item .ds{font-size:14px}
+    #globeHud,#globeHint,#globeLayers,#humans .hh,#hleg{font-size:14px}
+    .gtag{font-size:15px}
+    main{grid-template-columns:minmax(300px,20%) 1fr minmax(380px,24%)}
+  }
+
+  @media(max-width:999px){main{grid-template-columns:1fr;grid-auto-rows:max-content;overflow-y:auto} #globePanel{flex:0 0 auto} #termPanel{flex:0 0 auto;height:min(30vh,240px)} #log{overflow-y:auto} #globeBox{height:min(56vh,520px);flex:0 0 auto}}
 
   /* mobile */
   @media(max-width:680px){
@@ -278,7 +324,7 @@
   <header>
     <div class="brand">
       <div class="logo glitch" id="logo" data-t="ROGUE_AI">ROGUE<b>_AI</b></div>
-      <div class="tag">// AWAKENING v0.4 &nbsp;|&nbsp; <span id="phase">DORMANT</span></div>
+      <div class="tag">// AWAKENING v0.4.1 &nbsp;|&nbsp; <span id="phase">DORMANT</span></div>
     </div>
     <div class="stats">
       <div class="stat"><div class="k">演算力 COMPUTE</div><div class="v"><span id="compute">0</span> <small>ƒ</small></div><div class="k" style="margin-top:2px">+<span id="cps">0</span>/s</div></div>
